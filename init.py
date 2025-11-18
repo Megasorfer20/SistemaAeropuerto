@@ -1,0 +1,34 @@
+import webview
+import sys
+import os
+from difflib import get_close_matches
+from datetime import datetime
+from difflib import SequenceMatcher
+from datetime import datetime, timezone
+
+class API:
+    print("API inicializada")
+        
+    
+
+def main():
+    dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
+    index_file = os.path.join(dist_dir, 'index.html')
+
+    if not os.path.exists(index_file):
+        raise FileNotFoundError("¡Asegúrate de haber ejecutado 'npm run build' en Vue!")
+    
+    api = API()
+
+    # webview.create_window('Gestor de pacientes', index_file, js_api=api)
+    webview.create_window("Dev", "http://localhost:5173", js_api=api)
+
+    try:
+        
+        webview.start(debug=True, http_server=True)
+        # webview.start( http_server=True)
+    finally:
+        print("Cerrando la aplicación...")
+
+if __name__ == "__main__":
+    main()
