@@ -1,0 +1,12 @@
+{
+  "vip": {
+    "filas": 5,
+    "asientosPorFila": 6,
+    "precio": 200
+  },
+  "normal": {
+    "filas": 25,
+    "asientosPorFila": 6,
+    "precio": 0
+  }
+}

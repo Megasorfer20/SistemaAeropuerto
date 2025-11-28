@@ -1,3 +1,5 @@
+// Punto de entrada principal de la aplicación Vue
+import './assets/main.css'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'

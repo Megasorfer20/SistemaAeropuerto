@@ -1,11 +1,20 @@
-<script setup></script>
-
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <!-- Componente raíz de la aplicación -->
+  <div id="app">
+    <!-- El RouterView renderiza el componente de la ruta actual -->
+    <RouterView />
+  </div>
 </template>
 
-<style scoped></style>
+<script>
+export default {
+  name: 'App',
+}
+</script>
+
+<style scoped>
+#app {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+</style>
