@@ -14,8 +14,8 @@ def main():
     dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
     index_file = os.path.join(dist_dir, 'index.html')
 
-    if not os.path.exists(index_file):
-        raise FileNotFoundError("¡Asegúrate de haber ejecutado 'npm run build' en Vue!")
+    # if not os.path.exists(index_file):
+    #     raise FileNotFoundError("¡Asegúrate de haber ejecutado 'npm run build' en Vue!")
     
     api = API()
 
