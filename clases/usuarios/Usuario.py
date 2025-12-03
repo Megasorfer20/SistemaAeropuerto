@@ -15,6 +15,10 @@ class Usuario(ABC):
         pass
 
     def cambiarPassword(self, newPassword: str) -> bool:
+        if self.verificarPassword:
+            self._passwordHash = newPassword
+            return True
+        
         pass
 
     @abstractmethod
