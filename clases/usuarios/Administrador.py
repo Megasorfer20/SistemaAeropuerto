@@ -15,10 +15,12 @@ class Administrador(Usuario):
         pass
 
     def verSillasVendidas(self, filtro: Dict) -> Dict:
+            
         pass
 
     def verDatosPasajeros(self, idVuelo: str) -> List[Any]:
         pass
 
     def getTipo(self) -> str:
+        return "Admin"
         pass

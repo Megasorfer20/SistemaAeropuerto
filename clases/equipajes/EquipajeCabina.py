@@ -6,4 +6,8 @@ from clases.equipajes.Equipaje import Equipaje
 
 class EquipajeCabina(Equipaje):
     def calcularCosto(self, claseVuelo: str) -> float:
-        pass
+        if claseVuelo == "ECO":
+            costo = 40000
+        elif claseVuelo == "PREF":
+            costo = 0
+        return costo
