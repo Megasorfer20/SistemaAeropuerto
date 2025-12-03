@@ -1,0 +1,29 @@
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any, Optional
+from datetime import datetime, date
+from clases.asientos.Asiento import Asiento
+
+class Vuelo:
+    def __init__(self, codigo: str, origen: str, destino: str, fechaHoraSalida: datetime, precioBaseEco: float, precioBasePref: float):
+        self.__codigo = codigo
+        self.__origen = origen
+        self.__destino = destino
+        self.__fechaHoraSalida = fechaHoraSalida
+        self.__mapaAsientos: List[Asiento] = []
+        self.__precioBaseEco = precioBaseEco
+        self.__precioBasePref = precioBasePref
+
+    def generarMapaAsientos(self) -> None:
+        pass
+
+    def buscarAsientosLibres(self) -> int:
+        pass
+
+    def calcularSobreventaPermitida(self) -> float:
+        pass
+
+    def obtenerAsientoAleatorio(self, tipo: str) -> Asiento:
+        pass
+
+    def verificarDisponibilidad(self, cantidad: int) -> bool:
+        pass
