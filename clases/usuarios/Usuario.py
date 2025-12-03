@@ -10,6 +10,8 @@ class Usuario(ABC):
         self._passwordHash = passwordHash
 
     def verificarPassword(self, password: str) -> bool:
+        if password == self._passwordHash:
+            return True
         pass
 
     def cambiarPassword(self, newPassword: str) -> bool:
