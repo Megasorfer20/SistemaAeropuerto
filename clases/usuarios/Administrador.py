@@ -9,6 +9,7 @@ class Administrador(Usuario):
         super().__init__(nombre, correo, numDoc, passwordHash)
 
     def modificarVuelo(self, idVuelo: str, data: Dict) -> bool:
+
         pass
 
     def agregarVuelo(self, vuelo: 'Vuelo') -> bool:
@@ -23,4 +24,3 @@ class Administrador(Usuario):
 
     def getTipo(self) -> str:
         return "Admin"
-        pass

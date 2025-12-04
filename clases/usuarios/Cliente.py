@@ -16,8 +16,6 @@ class Cliente(Usuario):
         self.__millas += cantidad
         return
 
-        pass
-
     def puedeMejorarClase(self) -> bool:
         if self.__millas >= 2000:
             return True
