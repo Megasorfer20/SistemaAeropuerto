@@ -1,8 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from datetime import datetime, date
+
 from clases.usuarios.Usuario import Usuario
-from clases.vuelos.Reserva import Reserva
+
+if TYPE_CHECKING:
+    # Solo importamos Reserva para el chequeo de tipos, no para la ejecución
+    from clases.vuelos.Reserva import Reserva
+
 
 class Cliente(Usuario):
     def __init__(self, nombre: str, correo: str, numDoc: str, passwordHash: str):
