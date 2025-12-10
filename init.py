@@ -63,7 +63,7 @@ def main():
 
     try:
         # Pruebas en consola
-        
+
         
         # Activar la interfaz
         

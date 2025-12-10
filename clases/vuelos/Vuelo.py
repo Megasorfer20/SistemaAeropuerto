@@ -13,6 +13,30 @@ class Vuelo:
         self.__precioBaseEco = precioBaseEco
         self.__precioBasePref = precioBasePref
 
+    # --- GETTERS ---
+    def getCodigo(self) -> str:
+        return self.__codigo
+
+    def getOrigen(self) -> str:
+        return self.__origen
+
+    def getDestino(self) -> str:
+        return self.__destino
+
+    def getFechaHoraSalida(self) -> datetime:
+        return self.__fechaHoraSalida
+
+    def getMapaAsientos(self) -> List[Asiento]:
+        return self.__mapaAsientos
+
+    def getPrecioBaseEco(self) -> float:
+        return self.__precioBaseEco
+
+    def getPrecioBasePref(self) -> float:
+        return self.__precioBasePref
+
+    # --- MÉTODOS DE LÓGICA ---
+
     def generarMapaAsientos(self) -> None:
         pass
 
