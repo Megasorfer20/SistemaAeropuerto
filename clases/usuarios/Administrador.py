@@ -66,7 +66,25 @@ class Administrador(Usuario):
             return conteo_ventas
 
     def verDatosPasajeros(self, idVuelo: str) -> List[Any]:
-        pass
+        keys_reservas = ["codigo_reserva", "codigo_vuelo", "documento_cliente", "tipo_asiento", "asientos_seleccionados", "fecha_reserva"]
+        reservas = self.__gestor.cargarDatos("reservas.txt", keys_reservas)
+
+        docs_pasajeros = [res["num_doc"] for res in reservas if res["codigo_vuelo"] == idVuelo]
+        if not docs_pasajeros:
+            return []
+        
+        keys_clientes = ["nombre", "correo", "num_doc", "password_hash"]
+        clientes = self.__gestor.cargarDatos("clientes.txt", keys_clientes) 
+
+        pasajeros_info = []
+        for usuario in clientes:
+            if usuario["num_doc"] in docs_pasajeros:
+                usuario_seguro = usuario.copy()
+                if "password_hash" in usuario_seguro:
+                    del usuario_seguro["password_hash"]
+                pasajeros_info.append(usuario_seguro)
+        return pasajeros_info
+
 
     def getTipo(self) -> str:
         return "Admin"
