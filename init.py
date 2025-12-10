@@ -62,10 +62,18 @@ def main():
     webview.create_window("Dev", "http://localhost:5173", js_api=api)
 
     try:
+        # Pruebas en consola
+        
+        
+        # Activar la interfaz
         
         webview.start(debug=True, http_server=True)
         # webview.start( http_server=True)
     finally:
+        #PRUEBAS EN CONSOLA
+        
+        
+        # Cerrar la aplicación
         print("Cerrando la aplicación...")
 
 if __name__ == "__main__":

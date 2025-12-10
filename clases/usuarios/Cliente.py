@@ -17,10 +17,16 @@ class Cliente(Usuario):
         self.__historialReservas: List['Reserva'] = []
 
     def acumularMillas(self, cantidad: int) -> None:
-        pass
+        #if self.checkin == True:
+        self.__millas += cantidad
+        return
 
     def puedeMejorarClase(self) -> bool:
+        if self.__millas >= 2000:
+            return True
+
         pass
 
     def getTipo(self) -> str:
-        pass
+        return "Cliente"
+        
