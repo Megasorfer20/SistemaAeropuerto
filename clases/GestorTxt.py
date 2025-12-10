@@ -2,11 +2,12 @@ import os
 from typing import List, Dict, Any
 from clases.IPersistencia import IPersistencia
 
-class GestorTxtGestorTxt(IPersistencia): 
+class GestorTxt(IPersistencia): # Corregido el nombre duplicado de la clase
     def __init__(self, rutaBase: str = "database"):
         self.__rutaBase = rutaBase
 
     def cargarDatos(self, nombre_archivo: str, keys: List[str]) -> List[Dict[str, Any]]:
+        # Ahora _construirRuta se encarga de ponerle el .txt si falta
         ruta_completa = self._construirRuta(nombre_archivo)
         resultados = []
 
@@ -28,8 +29,11 @@ class GestorTxtGestorTxt(IPersistencia):
 
     def guardarDatos(self, nombre_archivo: str, datos: List[Dict[str, Any]]) -> bool:
         try:
-            ruta_carpeta = os.path.join(os.getcwd(), self.__rutaBase)
-            ruta_completa = os.path.join(ruta_carpeta, nombre_archivo)
+            # Usamos el mismo helper para obtener la ruta con .txt
+            ruta_completa = self._construirRuta(nombre_archivo)
+            
+            # Obtenemos la carpeta a partir de la ruta completa para crearla si no existe
+            ruta_carpeta = os.path.dirname(ruta_completa)
 
             if not os.path.exists(ruta_carpeta):
                 os.makedirs(ruta_carpeta)
@@ -50,6 +54,7 @@ class GestorTxtGestorTxt(IPersistencia):
     def _parsearLinea(self, linea: str, keys: List[str]) -> Dict[str, Any]:
         valores = linea.split(",")
         
+        # Validación para evitar errores si hay desajuste
         if len(valores) != len(keys):
             # Podrías lanzar error o intentar arreglarlo. 
             # Aquí simplemente retornamos lo que se pueda o un dict vacío.
@@ -61,13 +66,14 @@ class GestorTxtGestorTxt(IPersistencia):
 
     def _formatearDatos(self, datos: List[Dict[str, Any]]) -> List[str]:
         formatted_data = []
-        
         for dato in datos:
             valores = [str(value) for value in dato.values()]
             linea_csv = ",".join(valores)
             formatted_data.append(linea_csv)
-        
         return formatted_data
 
     def _construirRuta(self, nombre_archivo: str) -> str:
+        if not nombre_archivo.endswith(".txt"):
+            nombre_archivo += ".txt"
+            
         return os.path.join(os.getcwd(), self.__rutaBase, nombre_archivo)
