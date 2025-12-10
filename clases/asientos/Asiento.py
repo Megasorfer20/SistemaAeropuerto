@@ -17,7 +17,9 @@ class Asiento(ABC):
         pass
 
     def reservar(self, manual: bool) -> None:
+        self._ocupado = True 
         pass
 
     def liberar(self) -> None:
+        self._ocupado = False
         pass

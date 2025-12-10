@@ -6,4 +6,4 @@ from clases.equipajes.Equipaje import Equipaje
 
 class EquipajeMano(Equipaje):
     def calcularCosto(self, claseVuelo: str) -> float:
-        pass
+        return 0
