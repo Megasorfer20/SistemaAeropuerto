@@ -37,7 +37,7 @@ class API:
         print("Sistema iniciado y listo para usar :).")
 
     def login(self, doc: str, password: str) -> Dict:
-            # 1. BUSCAR EN ADMINISTRADORES
+        # 1. BUSCAR EN ADMINISTRADORES
         admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
         for admin_data in admins:
             user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
@@ -55,8 +55,7 @@ class API:
                 return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente", "millas": user_temp.getMillas()}}
                 
         # 3. NO SE ENCONTRÓ
-        return {"success": False, "message": "Credenciales inválidas."}                                     
-    
+        return {"success": False, "message": "Credenciales inválidas."}
 
     def registro(self, datos: Dict) -> bool:
         clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
