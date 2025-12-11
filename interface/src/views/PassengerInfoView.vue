@@ -294,13 +294,11 @@ export default {
     },
 
     inicializarPasajeros() {
-      // Solución Error #2: Autorellenar con datos reales del usuario (doc y correo)
       this.pasajeros = this.asientos.map((asiento, index) => {
         if (index === 0 && this.usuarioActual) {
           return {
             asiento: asiento.id,
             nombre: this.usuarioActual.nombre || '',
-            // Nota: API.py ahora retorna 'correo' y 'doc' en el login
             email: this.usuarioActual.correo || '',
             documento: this.usuarioActual.doc || this.usuarioActual.numDoc || '',
           }
@@ -321,7 +319,6 @@ export default {
       return this.asientos.filter((a) => a.tipo === 'vip').length
     },
 
-    // Solución Error #3: Aseguramos conversión a Number para evitar NaN
     calcularPrecioNormales() {
       const asientosEco = this.asientos.filter((a) => a.tipo === 'normal')
       return asientosEco.reduce((sum, a) => sum + Number(a.precio), 0)
@@ -331,7 +328,6 @@ export default {
       return asientosVIP.reduce((sum, a) => sum + Number(a.precio), 0)
     },
     calcularTotal() {
-      // Suma total segura
       return this.calcularPrecioNormales() + this.calcularPrecioVIP()
     },
 
@@ -341,9 +337,7 @@ export default {
 
     formatearFecha(fecha) {
       if (!fecha) return ''
-      // Detecta si es formato YYYY-MM-DD para convertirlo bien
       const date = new Date(fecha + 'T00:00:00')
-      // Si fecha no es valida, usar new Date(fecha)
       const validDate = isNaN(date.getTime()) ? new Date(fecha) : date
 
       return validDate.toLocaleDateString('es-ES', {
@@ -357,7 +351,10 @@ export default {
       this.$router.go(-1)
     },
 
-    // Solución Error #4: Llamar al API para crear la reserva y guardar respuesta
+    irAInicio() {
+      this.$router.push('/')
+    },
+
     confirmarReserva() {
       if (!this.formularioValido) {
         alert('Por favor, completa todos los campos obligatorios')
@@ -366,17 +363,16 @@ export default {
 
       this.cargando = true
 
-      // Asegurar que enviamos el doc del usuario logueado
       const docTitular = this.usuarioActual
         ? this.usuarioActual.doc || this.usuarioActual.numDoc
         : this.pasajeros[0].documento
 
       const datosReserva = {
-        vuelo_id: this.vuelo.id, // CORREGIDO: vuelo_id para coincidir con Python
+        vuelo_id: this.vuelo.id, // CORREGIDO: Se envía vuelo_id
         titular_doc: docTitular,
         asientos: this.asientos,
         pasajeros: this.pasajeros,
-        total: this.calcularTotal()
+        total: this.calcularTotal(),
       }
 
       if (window.pywebview) {
@@ -384,9 +380,8 @@ export default {
           .crearReserva(datosReserva)
           .then((response) => {
             if (response.success) {
-              // Creamos el objeto final con el código real generado por el backend
               const reservaFinal = {
-                codigo: response.codigo, // <--- CÓDIGO DEL BACKEND
+                codigo: response.codigo,
                 vuelo: this.vuelo,
                 asientos: this.asientos,
                 pasajeros: this.pasajeros,
@@ -394,9 +389,7 @@ export default {
                 fecha: new Date().toISOString(),
               }
 
-              // Guardamos en LocalStorage con la clave que ConfirmationView espera
               localStorage.setItem('reservaActual', JSON.stringify(reservaFinal))
-
               this.$router.push('/confirmacion')
             } else {
               alert('Error al crear la reserva: ' + response.message)
@@ -409,14 +402,9 @@ export default {
             this.cargando = false
           })
       } else {
-        // Fallback solo para pruebas sin backend (dev mode)
         alert('Modo desarrollo: Backend no detectado.')
         this.cargando = false
       }
-    },
-
-    irAInicio() {
-      this.$router.push('/')
     },
   },
 }
