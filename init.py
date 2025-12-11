@@ -45,13 +45,53 @@ class API:
         return {"success": False, "message": "Credenciales inválidas."}}}
 
     def registro(self, datos: Dict) -> bool:
-        pass
+        clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+        
+        for c in clientes:
+            if c["num_doc"] == datos["numDoc"]:
+                return {"success": False, "message": "El usuario ya existe"}
+
+        nuevo_cliente = Cliente(datos["nombre"], datos["correo"], datos["numDoc"], datos["password"])
+        
+        nuevo_dict = {
+            "nombre": datos["nombre"],
+            "correo": datos["correo"],
+            "num_doc": datos["numDoc"],
+            "password_hash": nuevo_cliente._passwordHash,
+            "millas": 0
+        }
+        
+        clientes.append(nuevo_dict)
+        if self.__gestor.guardarDatos("clientes.txt", clientes):
+            return {"success": True, "message": "Registro exitoso"}
+        return {"success": False, "message": "Error al guardar"}
 
     def buscarVuelos(self, filtros: Dict) -> List[Vuelo]:
-        pass
+        keys = ["codigo", "origen", "destino", "dia", "hora", "sillas_pref", "sillas_eco"]
+        vuelos = self.__gestor.cargarDatos("vuelos.txt", keys)
+        resultado = []
+
+        origen_b = filtros.get("origen", "").lower()
+        destino_b = filtros.get("destino", "").lower()
+
+        for v in vuelos:
+            match_origen = not origen_b or origen_b in v["origen"].lower()
+            match_destino = not destino_b or destino_b in v["destino"].lower()
+
+            if match_origen and match_destino:
+                v["sillas_pref"] = int(v["sillas_pref"])
+                v["sillas_eco"] = int(v["sillas_eco"])
+                resultado.append(v)
+        
+        return resultado
 
     def obtenerDetalleVuelo(self, idVuelo: str) -> Dict:
-        pass
+        keys = ["codigo", "origen", "destino", "dia", "hora", "sillas_pref", "sillas_eco"]
+        vuelos = self.__gestor.cargarDatos("vuelos.txt", keys)
+        for v in vuelos:
+            if v["codigo"] == idVuelo:
+                return v
+        return {}
 
     def crearReserva(self, idVuelo: str, pasajerosData: List) -> Dict:
         pass
