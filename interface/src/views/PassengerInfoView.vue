@@ -1,5 +1,4 @@
 <template>
-  <!-- Vista de información de pasajeros -->
   <div class="passenger-info-view">
     <NavBar />
 
@@ -162,7 +161,7 @@
               <h4 class="summary-section-title">Vuelo</h4>
               <div class="summary-detail">
                 <span class="detail-label">Número</span>
-                <span class="detail-value">{{ vuelo.numeroVuelo }}</span>
+                <span class="detail-value">{{ vuelo.id }}</span>
               </div>
               <div class="summary-detail">
                 <span class="detail-label">Ruta</span>
@@ -170,11 +169,11 @@
               </div>
               <div class="summary-detail">
                 <span class="detail-label">Fecha</span>
-                <span class="detail-value">{{ formatearFecha(vuelo.fechaSalida) }}</span>
+                <span class="detail-value">{{ formatearFecha(vuelo.fechaDiaSalida) }}</span>
               </div>
               <div class="summary-detail">
                 <span class="detail-label">Hora</span>
-                <span class="detail-value">{{ vuelo.horaSalida }}</span>
+                <span class="detail-value">{{ vuelo.fechaHoraSalida }}</span>
               </div>
             </div>
 
@@ -202,16 +201,16 @@
               <div class="price-items">
                 <div class="price-detail">
                   <span>Asientos Normales ({{ contarNormales() }})</span>
-                  <span>${{ calcularPrecioNormales().toFixed(2) }}</span>
+                  <span>${{ formatPrice(calcularPrecioNormales()) }}</span>
                 </div>
                 <div class="price-detail">
                   <span>Asientos VIP ({{ contarVIP() }})</span>
-                  <span>${{ calcularPrecioVIP().toFixed(2) }}</span>
+                  <span>${{ formatPrice(calcularPrecioVIP()) }}</span>
                 </div>
                 <div class="price-divider"></div>
                 <div class="price-detail price-total">
                   <span>Total</span>
-                  <span>${{ calcularTotal().toFixed(2) }}</span>
+                  <span>${{ formatPrice(calcularTotal()) }}</span>
                 </div>
               </div>
             </div>
@@ -222,9 +221,9 @@
               <button
                 @click="confirmarReserva"
                 class="btn btn-primary"
-                :disabled="!formularioValido"
+                :disabled="!formularioValido || cargando"
               >
-                Confirmar Reserva
+                {{ cargando ? 'Procesando...' : 'Confirmar Reserva' }}
               </button>
             </div>
           </div>
@@ -257,63 +256,55 @@ export default {
   },
   data() {
     return {
-      // Datos del vuelo y asientos desde localStorage
       vuelo: null,
       asientos: [],
-      // Array de información de pasajeros
       pasajeros: [],
-      // Usuario actual
       usuarioActual: null,
+      cargando: false,
     }
   },
   computed: {
-    // Verificar si el formulario está completo
     formularioValido() {
+      if (!this.pasajeros.length) return false
       return this.pasajeros.every(
-        (p) => p.nombre.trim() !== '' && p.email.trim() !== '' && p.documento.trim() !== '',
+        (p) =>
+          p.nombre &&
+          p.nombre.trim() !== '' &&
+          p.email &&
+          p.email.trim() !== '' &&
+          p.documento &&
+          p.documento.trim() !== '',
       )
     },
   },
   mounted() {
-    // Cargar datos al montar
     this.cargarDatos()
     this.inicializarPasajeros()
   },
   methods: {
-    // Cargar datos desde localStorage
     cargarDatos() {
-      // Cargar vuelo
       const vueloStr = localStorage.getItem('vueloReserva')
-      if (vueloStr) {
-        this.vuelo = JSON.parse(vueloStr)
-      }
+      if (vueloStr) this.vuelo = JSON.parse(vueloStr)
 
-      // Cargar asientos
       const asientosStr = localStorage.getItem('asientosSeleccionados')
-      if (asientosStr) {
-        this.asientos = JSON.parse(asientosStr)
-      }
+      if (asientosStr) this.asientos = JSON.parse(asientosStr)
 
-      // Cargar usuario
       const usuarioStr = localStorage.getItem('usuarioActual')
-      if (usuarioStr) {
-        this.usuarioActual = JSON.parse(usuarioStr)
-      }
+      if (usuarioStr) this.usuarioActual = JSON.parse(usuarioStr)
     },
-    // Inicializar array de pasajeros con datos del usuario en el primero
+
     inicializarPasajeros() {
+      // Solución Error #2: Autorellenar con datos reales del usuario (doc y correo)
       this.pasajeros = this.asientos.map((asiento, index) => {
-        // El primer pasajero tiene los datos del usuario por defecto
         if (index === 0 && this.usuarioActual) {
           return {
             asiento: asiento.id,
             nombre: this.usuarioActual.nombre || '',
-            email: this.usuarioActual.email || '',
-            documento: this.usuarioActual.documento || '',
+            // Nota: API.py ahora retorna 'correo' y 'doc' en el login
+            email: this.usuarioActual.correo || '',
+            documento: this.usuarioActual.doc || this.usuarioActual.numDoc || '',
           }
         }
-
-        // Los demás pasajeros tienen campos vacíos
         return {
           asiento: asiento.id,
           nombre: '',
@@ -322,65 +313,105 @@ export default {
         }
       })
     },
-    // Contar asientos normales
+
     contarNormales() {
       return this.asientos.filter((a) => a.tipo === 'normal').length
     },
-    // Contar asientos VIP
     contarVIP() {
       return this.asientos.filter((a) => a.tipo === 'vip').length
     },
-    // Calcular precio de asientos normales
+
+    // Solución Error #3: Aseguramos conversión a Number para evitar NaN
     calcularPrecioNormales() {
-      return this.contarNormales() * this.vuelo.precio
+      const asientosEco = this.asientos.filter((a) => a.tipo === 'normal')
+      return asientosEco.reduce((sum, a) => sum + Number(a.precio), 0)
     },
-    // Calcular precio de asientos VIP
     calcularPrecioVIP() {
       const asientosVIP = this.asientos.filter((a) => a.tipo === 'vip')
-      return (
-        asientosVIP.reduce((total, asiento) => total + asiento.precio, 0) +
-        this.contarVIP() * this.vuelo.precio
-      )
+      return asientosVIP.reduce((sum, a) => sum + Number(a.precio), 0)
     },
-    // Calcular total
     calcularTotal() {
+      // Suma total segura
       return this.calcularPrecioNormales() + this.calcularPrecioVIP()
     },
-    // Formatear fecha
+
+    formatPrice(value) {
+      return Number(value).toLocaleString('es-CO')
+    },
+
     formatearFecha(fecha) {
+      if (!fecha) return ''
+      // Detecta si es formato YYYY-MM-DD para convertirlo bien
       const date = new Date(fecha + 'T00:00:00')
-      return date.toLocaleDateString('es-ES', {
+      // Si fecha no es valida, usar new Date(fecha)
+      const validDate = isNaN(date.getTime()) ? new Date(fecha) : date
+
+      return validDate.toLocaleDateString('es-ES', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       })
     },
-    // Volver a la selección de asientos
+
     volver() {
       this.$router.go(-1)
     },
-    // Confirmar reserva
+
+    // Solución Error #4: Llamar al API para crear la reserva y guardar respuesta
     confirmarReserva() {
       if (!this.formularioValido) {
         alert('Por favor, completa todos los campos obligatorios')
         return
       }
 
-      // Guardar información de pasajeros en localStorage
-      const reserva = {
-        vuelo: this.vuelo,
+      this.cargando = true
+
+      const datosReserva = {
+        idVuelo: this.vuelo.id,
+        titular_doc: this.usuarioActual
+          ? this.usuarioActual.doc || this.usuarioActual.numDoc
+          : 'Anonimo',
         asientos: this.asientos,
         pasajeros: this.pasajeros,
         total: this.calcularTotal(),
-        fecha: new Date().toISOString(),
       }
 
-      localStorage.setItem('reservaActual', JSON.stringify(reserva))
+      if (window.pywebview) {
+        window.pywebview.api
+          .crearReserva(datosReserva)
+          .then((response) => {
+            if (response.success) {
+              // Creamos el objeto final con el código real generado por el backend
+              const reservaFinal = {
+                codigo: response.codigo, // <--- CÓDIGO DEL BACKEND
+                vuelo: this.vuelo,
+                asientos: this.asientos,
+                pasajeros: this.pasajeros,
+                total: datosReserva.total,
+                fecha: new Date().toISOString(),
+              }
 
-      // Navegar a la página de confirmación
-      this.$router.push('/confirmacion')
+              // Guardamos en LocalStorage con la clave que ConfirmationView espera
+              localStorage.setItem('reservaActual', JSON.stringify(reservaFinal))
+
+              this.$router.push('/confirmacion')
+            } else {
+              alert('Error al crear la reserva: ' + response.message)
+              this.cargando = false
+            }
+          })
+          .catch((err) => {
+            console.error(err)
+            alert('Error de comunicación con el servidor.')
+            this.cargando = false
+          })
+      } else {
+        // Fallback solo para pruebas sin backend (dev mode)
+        alert('Modo desarrollo: Backend no detectado.')
+        this.cargando = false
+      }
     },
-    // Ir al inicio
+
     irAInicio() {
       this.$router.push('/')
     },

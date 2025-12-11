@@ -360,11 +360,11 @@ class API:
                         "success": True, 
                         "user": {
                             "nombre": admin.getNombre(),
+                            "correo": admin.getCorreo(),   # AGREGADO
+                            "doc": admin.getNumDoc(),      # AGREGADO
                             "tipo_usuario": "Admin"
                         }
                     }
-                else:
-                    return {"success": False, "message": "Contraseña incorrecta (Admin)."}
 
         # 2. Buscar en Clientes
         for cliente in self.__clientes:
@@ -375,15 +375,15 @@ class API:
                         "success": True, 
                         "user": {
                             "nombre": cliente.getNombre(),
+                            "correo": cliente.getCorreo(), # AGREGADO
+                            "doc": cliente.getNumDoc(),    # AGREGADO
                             "tipo_usuario": "Cliente",
                             "millas": cliente.getMillas()
                         }
                     }
-                else:
-                    return {"success": False, "message": "Contraseña incorrecta."}
         
-        return {"success": False, "message": "Usuario no encontrado."}
-
+        return {"success": False, "message": "Credenciales inválidas."}
+    
     def registro(self, datos: Dict) -> Dict:
         # 1. Verificar existencia (revisar ambas listas para evitar duplicados de documento)
         for admin in self.__administradores:
@@ -479,3 +479,47 @@ class API:
         # for r in self.__reservas: ...
         
         return reservas_fmt
+    
+    def obtener_sillas_ocupadas(self, id_vuelo: str) -> List[str]:
+        sillas_ocupadas = []
+        # Recorremos todas las reservas en memoria
+        for reserva in self.__reservas:
+            # Si la reserva es de este vuelo
+            if reserva.get("codigo_vuelo") == id_vuelo:
+                # reserva["asientos"] debe ser una lista de IDs de asientos (ej: ["A1", "B1"])
+                sillas_ocupadas.extend(reserva.get("asientos", []))
+        return sillas_ocupadas
+
+    def crearReserva(self, datos: Dict) -> Dict:
+        """
+        Recibe: { idVuelo, pasajeros: [], asientos: [], total: float, titular_doc: str }
+        """
+        import random
+        import string
+
+        try:
+            # Generar código de reserva único
+            codigo = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            
+            # Crear estructura de reserva (Diccionario simple para este ejercicio)
+            nueva_reserva = {
+                "codigo_reserva": codigo,
+                "codigo_vuelo": datos["idVuelo"],
+                "documento_cliente": datos.get("titular_doc"), # Doc del usuario logueado
+                "asientos": [a["id"] for a in datos["asientos"]], # Guardamos solo IDs ["1A", "1B"]
+                "detalles_asientos": datos["asientos"], # Guardamos detalle completo si quieres
+                "pasajeros": datos["pasajeros"],
+                "total": datos["total"],
+                "fecha_reserva": datetime.now().strftime("%Y-%m-%d")
+            }
+
+            # Guardar en memoria
+            self.__reservas.append(nueva_reserva)
+            
+            # (Opcional) Aquí deberías llamar a self.__persistencia.guardarDatos("reservas.txt", ...) 
+            # si quieres persistencia inmediata, pero con tenerlo en memoria basta para que el flujo funcione.
+
+            return {"success": True, "codigo": codigo}
+        except Exception as e:
+            print(f"Error creando reserva: {e}")
+            return {"success": False, "message": str(e)}
