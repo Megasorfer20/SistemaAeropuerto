@@ -6,10 +6,11 @@ from clases.vuelos.Vuelo import Vuelo
 from clases.GestorTxt import GestorTxt
 
 class Administrador(Usuario):
-    def __init__(self, nombre: str, correo: str, numDoc: str, passwordHash: str):
-        super().__init__(nombre, correo, numDoc, passwordHash)
+    def __init__(self, nombre: str, correo: str, numDoc: str, password: str, es_hash: bool = False):
+        super().__init__(nombre, correo, numDoc, password, es_hash)
+        # Lógica específica de administrador (gestor, keys) se mantiene igual...
         self.__gestor = GestorTxt("database")
-        self.__keys_vuelos = ["codigo", "origen", "destino", "dia", "hora", "sillas_pref", "sillas_eco"]
+        self.__keys_vuelos = ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"]
         
 
     def modificarVuelo(self, idVuelo: str, data: Dict) -> bool:
