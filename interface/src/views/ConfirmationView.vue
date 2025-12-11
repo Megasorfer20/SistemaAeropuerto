@@ -41,7 +41,8 @@
             <div class="info-grid">
               <div class="info-item">
                 <span class="item-label">Número de Vuelo</span>
-                <span class="item-value">{{ reserva.vuelo.numeroVuelo }}</span>
+                <!-- CORREGIDO: id en lugar de numeroVuelo -->
+                <span class="item-value">{{ reserva.vuelo.id }}</span>
               </div>
               <div class="info-item">
                 <span class="item-label">Origen</span>
@@ -53,16 +54,15 @@
               </div>
               <div class="info-item">
                 <span class="item-label">Fecha de Salida</span>
-                <span class="item-value">{{ formatearFecha(reserva.vuelo.fechaSalida) }}</span>
+                <!-- CORREGIDO: fechaDiaSalida en lugar de fechaSalida -->
+                <span class="item-value">{{ formatearFecha(reserva.vuelo.fechaDiaSalida) }}</span>
               </div>
               <div class="info-item">
                 <span class="item-label">Hora de Salida</span>
-                <span class="item-value">{{ reserva.vuelo.horaSalida }}</span>
+                <!-- CORREGIDO: fechaHoraSalida en lugar de horaSalida -->
+                <span class="item-value">{{ reserva.vuelo.fechaHoraSalida }}</span>
               </div>
-              <div class="info-item">
-                <span class="item-label">Hora de Llegada</span>
-                <span class="item-value">{{ reserva.vuelo.horaLlegada }}</span>
-              </div>
+              <!-- ELIMINADO: Hora de Llegada (No existe en el backend) -->
             </div>
           </div>
 
@@ -140,12 +140,12 @@
             <div class="payment-summary">
               <div class="payment-item">
                 <span>Subtotal</span>
-                <span>${{ reserva.total.toFixed(2) }}</span>
+                <span>${{ formatPrice(reserva.total) }}</span>
               </div>
               <div class="payment-divider"></div>
               <div class="payment-item payment-total">
                 <span>Total Pagado</span>
-                <span>${{ reserva.total.toFixed(2) }}</span>
+                <span>${{ formatPrice(reserva.total) }}</span>
               </div>
             </div>
           </div>
@@ -203,26 +203,27 @@ export default {
   },
   data() {
     return {
-      // Datos de la reserva
       reserva: null,
-      // Código de reserva generado
       codigoReserva: '',
     }
   },
   mounted() {
-    // Cargar reserva y generar código
     this.cargarReserva()
-    this.generarCodigoReserva()
   },
   methods: {
-    // Cargar reserva desde localStorage
     cargarReserva() {
       const reservaStr = localStorage.getItem('reservaActual')
       if (reservaStr) {
         this.reserva = JSON.parse(reservaStr)
+
+        // Priorizar código del backend, sino generar uno (fallback)
+        if (this.reserva.codigo) {
+          this.codigoReserva = this.reserva.codigo
+        } else {
+          this.generarCodigoReserva()
+        }
       }
     },
-    // Generar código de reserva único
     generarCodigoReserva() {
       const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
       let codigo = ''
@@ -231,31 +232,34 @@ export default {
       }
       this.codigoReserva = codigo
     },
-    // Formatear fecha
+    formatPrice(value) {
+      return Number(value).toLocaleString('es-CO')
+    },
     formatearFecha(fecha) {
+      if (!fecha) return ''
+      // Manejar formato YYYY-MM-DD
       const date = new Date(fecha + 'T00:00:00')
-      return date.toLocaleDateString('es-ES', {
+      const validDate = isNaN(date.getTime()) ? new Date(fecha) : date
+
+      return validDate.toLocaleDateString('es-ES', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       })
     },
-    // Navegar al inicio
     irAInicio() {
-      // Limpiar datos de reserva
-      localStorage.removeItem('reservaActual')
-      localStorage.removeItem('vueloReserva')
-      localStorage.removeItem('asientosSeleccionados')
+      this.limpiarStorage()
       this.$router.push('/')
     },
-    // Navegar al dashboard
     irADashboard() {
-      // Limpiar datos de reserva
+      this.limpiarStorage()
+      this.$router.push('/dashboard')
+    },
+    limpiarStorage() {
       localStorage.removeItem('reservaActual')
       localStorage.removeItem('vueloReserva')
       localStorage.removeItem('asientosSeleccionados')
-      this.$router.push('/dashboard')
     },
   },
 }
