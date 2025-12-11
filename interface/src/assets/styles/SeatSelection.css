@@ -1,0 +1,744 @@
+.seat-selection-view {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.seat-container {
+  padding: 40px 20px;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: color 0.3s ease;
+}
+
+.btn-back:hover {
+  color: var(--primary-red);
+}
+
+.btn-back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.seat-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Flight Info Bar */
+.flight-info-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.flight-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.info-highlight {
+  color: var(--primary-red);
+}
+
+/* Seat Layout */
+.seat-layout-container {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 24px;
+}
+
+.seat-map-section {
+  padding: 32px;
+}
+
+.seat-map-header {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+/* Legend */
+.seat-legend {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+.legend-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 2px solid var(--border-gray);
+}
+
+/* Cabin Sections */
+.cabin-section {
+  margin-bottom: 32px;
+}
+
+.cabin-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-gray);
+}
+
+.cabin-header svg {
+  width: 24px;
+  height: 24px;
+  color: var(--primary-red);
+}
+
+.cabin-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-dark);
+  flex: 1;
+}
+
+.cabin-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-red);
+}
+
+.cabin-divider {
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--border-gray) 20%,
+    var(--border-gray) 80%,
+    transparent
+  );
+  margin: 32px 0;
+}
+
+/* Seats Grid */
+.seats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  max-width: 600px;
+}
+
+.seat-button {
+  aspect-ratio: 1;
+  border: 2px solid var(--border-gray);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seat-available {
+  background-color: var(--white);
+  color: var(--text-dark);
+  border-color: var(--border-gray);
+}
+
+.seat-available:hover {
+  background-color: var(--light-gray);
+  border-color: var(--primary-red);
+  transform: scale(1.05);
+}
+
+.seat-occupied {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border-color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.seat-selected {
+  background-color: var(--primary-red);
+  color: var(--white);
+  border-color: var(--primary-red);
+  transform: scale(1.05);
+}
+
+/* Summary Section */
+.summary-section {
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+}
+
+.summary-card {
+  padding: 24px;
+}
+
+.summary-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+}
+
+.selected-seats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.selected-seat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--light-gray);
+  border-radius: 8px;
+}
+
+.seat-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seat-number {
+  font-weight: 700;
+  color: var(--text-dark);
+  font-size: 16px;
+}
+
+.seat-type {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.seat-type-vip {
+  background-color: #fee2e2;
+  color: var(--primary-red);
+}
+
+.seat-type-normal {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.remove-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.remove-btn:hover {
+  color: var(--primary-red);
+}
+
+.remove-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.no-seats-selected {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+}
+
+.no-seats-selected svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-seats-selected p {
+  font-size: 14px;
+}
+
+/* Price Breakdown */
+.price-breakdown {
+  margin-bottom: 20px;
+}
+
+.price-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+.price-divider {
+  height: 1px;
+  background-color: var(--border-gray);
+  margin: 8px 0;
+}
+
+.price-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-red);
+}
+
+.btn-large {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 16px;
+}
+
+.loading-card {
+  padding: 60px;
+  text-align: center;
+  color: var(--text-light);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .seat-layout-container {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-section {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .seats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .seat-button {
+    font-size: 12px;
+  }
+
+  .flight-info-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.seat-selection-view {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.seat-container {
+  padding: 40px 20px;
+}
+
+/* ... Estilos CSS previos se mantienen, asegurando que funcionen con la nueva estructura ... */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: color 0.3s ease;
+}
+
+.btn-back:hover {
+  color: var(--primary-red);
+}
+
+.btn-back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.seat-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Flight Info Bar */
+.flight-info-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.flight-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.info-highlight {
+  color: var(--primary-red);
+}
+
+/* Seat Layout */
+.seat-layout-container {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 24px;
+}
+
+.seat-map-section {
+  padding: 32px;
+}
+
+.seat-map-header {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+/* Legend */
+.seat-legend {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+.legend-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 2px solid var(--border-gray);
+}
+
+/* Cabin Sections */
+.cabin-section {
+  margin-bottom: 32px;
+}
+
+.cabin-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-gray);
+}
+
+.cabin-header svg {
+  width: 24px;
+  height: 24px;
+  color: var(--primary-red);
+}
+
+.cabin-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-dark);
+  flex: 1;
+}
+
+.cabin-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-red);
+}
+
+.cabin-divider {
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--border-gray) 20%,
+    var(--border-gray) 80%,
+    transparent
+  );
+  margin: 32px 0;
+}
+
+/* Seats Grid */
+.seats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  max-width: 600px;
+}
+
+.seat-button {
+  aspect-ratio: 1;
+  border: 2px solid var(--border-gray);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seat-available {
+  background-color: var(--white);
+  color: var(--text-dark);
+  border-color: var(--border-gray);
+}
+
+.seat-available:hover {
+  background-color: var(--light-gray);
+  border-color: var(--primary-red);
+  transform: scale(1.05);
+}
+
+.seat-occupied {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border-color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.seat-selected {
+  background-color: var(--primary-red);
+  color: var(--white);
+  border-color: var(--primary-red);
+  transform: scale(1.05);
+}
+
+/* Summary Section */
+.summary-section {
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+}
+
+.summary-card {
+  padding: 24px;
+}
+
+.summary-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+}
+
+.selected-seats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.selected-seat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--light-gray);
+  border-radius: 8px;
+}
+
+.seat-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seat-number {
+  font-weight: 700;
+  color: var(--text-dark);
+  font-size: 16px;
+}
+
+.seat-type {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.seat-type-vip {
+  background-color: #fee2e2;
+  color: var(--primary-red);
+}
+
+.seat-type-normal {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.remove-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.remove-btn:hover {
+  color: var(--primary-red);
+}
+
+.remove-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.no-seats-selected {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+}
+
+.no-seats-selected svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-seats-selected p {
+  font-size: 14px;
+}
+
+/* Price Breakdown */
+.price-breakdown {
+  margin-bottom: 20px;
+}
+
+.price-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+.price-divider {
+  height: 1px;
+  background-color: var(--border-gray);
+  margin: 8px 0;
+}
+
+.price-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-red);
+}
+
+.btn-large {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 16px;
+}
+
+.loading-card {
+  padding: 60px;
+  text-align: center;
+  color: var(--text-light);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .seat-layout-container {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-section {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .seats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .seat-button {
+    font-size: 12px;
+  }
+
+  .flight-info-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
