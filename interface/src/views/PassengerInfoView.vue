@@ -366,14 +366,17 @@ export default {
 
       this.cargando = true
 
+      // Asegurar que enviamos el doc del usuario logueado
+      const docTitular = this.usuarioActual
+        ? this.usuarioActual.doc || this.usuarioActual.numDoc
+        : this.pasajeros[0].documento
+
       const datosReserva = {
-        idVuelo: this.vuelo.id,
-        titular_doc: this.usuarioActual
-          ? this.usuarioActual.doc || this.usuarioActual.numDoc
-          : 'Anonimo',
+        vuelo_id: this.vuelo.id, // CORREGIDO: vuelo_id para coincidir con Python
+        titular_doc: docTitular,
         asientos: this.asientos,
         pasajeros: this.pasajeros,
-        total: this.calcularTotal(),
+        total: this.calcularTotal()
       }
 
       if (window.pywebview) {
