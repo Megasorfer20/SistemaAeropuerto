@@ -228,73 +228,92 @@ class API:
 
     def realizarCheckIn(self, payload: Dict) -> Dict:
         """
-        Recibe payload del Vue con la configuración de maletas.
-        Calcula costos finales, asigna millas y cierra el check-in.
+        Requerimientos 6 y 7:
+        - Acumular millas (500 por reserva).
+        - Calcular costos de equipaje (Reglas de Cabina y Bodega).
+        - Finalizar Check-In.
         """
-        id_reserva = payload.get("idReserva")
-        pasajeros_config = payload.get("pasajeros") # Lista [{num_doc, maleta_cabina, maleta_bodega...}]
+        try:
+            id_reserva = payload.get("idReserva")
+            pasajeros_config = payload.get("pasajeros") # Lista que viene del Vue
 
-        reserva: Reserva = next((r for r in self.__reservas if r.getId() == id_reserva), None)
-        if not reserva:
-            return {"success": False, "message": "Reserva no encontrada"}
-
-        total_costo_equipaje = 0.0
-
-        # Procesar Equipaje y Costos
-        for p_conf in pasajeros_config:
-            doc = p_conf.get("num_doc")
-            # Buscar el objeto pasajero en la reserva
-            # (Simplificación: iteramos para encontrar coincidencia)
-            pasajero_obj = next((p for p in reserva.getPasajeros() if p._Pasajero__numDoc == doc), None)
+            # 1. Buscar la reserva en memoria
+            reserva: Reserva = next((r for r in self.__reservas if r.getId() == id_reserva), None)
             
-            if pasajero_obj:
-                # Determinar clase
-                es_pref = isinstance(pasajero_obj._Pasajero__asiento, AsientoPreferencial)
-                clase_str = "PREF" if es_pref else "ECO"
+            if not reserva:
+                return {"success": False, "message": "Reserva no encontrada"}
+            
+            if reserva.getCheckInRealizado():
+                return {"success": False, "message": "El Check-In ya fue realizado anteriormente."}
 
-                # 1. Maleta Cabina
-                if p_conf.get("maleta_cabina"):
-                    eq_cabina = EquipajeCabina(10, 0) # Peso estándar
-                    total_costo_equipaje += eq_cabina.calcularCosto(clase_str)
-                    pasajero_obj.agregarEquipaje(eq_cabina)
+            total_costo_equipaje = 0.0
 
-                # 2. Maleta Bodega
-                bodega_data = p_conf.get("maleta_bodega")
-                peso = float(bodega_data.get("peso", 0))
-                vol = float(bodega_data.get("volumen", 0))
+            # 2. Procesar cada pasajero y sus maletas
+            for p_conf in pasajeros_config:
+                doc_pasajero = p_conf.get("num_doc")
+                
+                # Buscar el objeto Pasajero dentro de la Reserva
+                # (Accedemos a los atributos protegidos del objeto Pasajero)
+                pasajero_obj = next((p for p in reserva.getPasajeros() if p._Pasajero__numDoc == doc_pasajero), None)
+                
+                if pasajero_obj:
+                    # Determinar la clase del vuelo basada en el asiento del pasajero
+                    asiento = pasajero_obj._Pasajero__asiento
+                    es_preferencial = isinstance(asiento, AsientoPreferencial)
+                    clase_str = "PREF" if es_preferencial else "ECO"
 
-                if peso > 0:
-                    eq_bodega = EquipajeBodega(peso, vol)
-                    costo = eq_bodega.calcularCosto(clase_str)
-                    
-                    # REGLA: 1 incluida en Preferencial
-                    # Si es PREF, asumimos que el usuario ingresó el peso TOTAL.
-                    # El sistema podría descontar la primera maleta, o asumir que el input
-                    # son maletas ADICIONALES.
-                    # Dado el enunciado "maletas adicionales... tienen costo", asumiremos:
-                    # Si es PREF y solo lleva 1, el frontend o usuario pone 0 costo.
-                    # Para simplificar backend: Calculamos costo full según fórmula.
-                    # Si quieres aplicar descuento: 
-                    # if es_pref: costo = max(0, costo - costo_una_maleta_promedio)
-                    
-                    total_costo_equipaje += costo
-                    pasajero_obj.agregarEquipaje(eq_bodega)
+                    # --- A. EQUIPAJE CABINA (Req 7) ---
+                    if p_conf.get("maleta_cabina"):
+                        eq_cabina = EquipajeCabina(10, 0) # Peso estándar 10kg
+                        costo_cabina = eq_cabina.calcularCosto(clase_str)
+                        total_costo_equipaje += costo_cabina
+                        
+                        # Guardar en el objeto pasajero
+                        pasajero_obj.agregarEquipaje(eq_cabina)
 
-        # Actualizar estado de Reserva
-        reserva.setCheckInRealizado(True)
+                    # --- B. EQUIPAJE BODEGA (Req 7) ---
+                    bodega_data = p_conf.get("maleta_bodega")
+                    peso = float(bodega_data.get("peso", 0))
+                    vol = float(bodega_data.get("volumen", 0))
 
-        # REQUERIMIENTO 6: ACUMULAR MILLAS
-        # Por cada reserva acumula 500 millas (al titular)
-        titular = reserva.getTitular()
-        if titular:
-            titular.acumularMillas(500)
-            print(f"Millas acumuladas para {titular.getNombre()}. Total: {titular.getMillas()}")
+                    if peso > 0:
+                        eq_bodega = EquipajeBodega(peso, vol)
+                        costo_bodega = eq_bodega.calcularCosto(clase_str)
+                        
+                        # Regla: 1 maleta incluida para Preferencial
+                        # Verificamos si ya tiene equipaje de bodega agregado en este proceso
+                        # Para simplificar: Asumimos que el input trae 1 maleta de bodega por persona.
+                        # Si es PREF, esta primera maleta sale gratis.
+                        if es_preferencial:
+                            costo_bodega = 0.0 
+                            # Si permitieras agregar multiples maletas de bodega por persona, 
+                            # aquí deberías usar un contador. Pero el form actual permite 1.
+                        
+                        total_costo_equipaje += costo_bodega
+                        pasajero_obj.agregarEquipaje(eq_bodega)
 
-        return {
-            "success": True, 
-            "millas_ganadas": 500,
-            "costo_equipaje": total_costo_equipaje
-        }
+            # 3. Finalizar Check-In
+            reserva.setCheckInRealizado(True)
+
+            # 4. Acumular Millas (Req 6: 500 millas por reserva)
+            titular = reserva.getTitular()
+            millas_ganadas = 500
+            
+            if titular and isinstance(titular, Cliente):
+                titular.acumularMillas(millas_ganadas)
+            
+            # (El guardado en TXT se hace automático al cerrar la ventana gracias al init.py)
+
+            return {
+                "success": True, 
+                "millas_ganadas": millas_ganadas,
+                "costo_equipaje": total_costo_equipaje,
+                "mensaje": f"Check-In Exitoso. Costo extra equipaje: ${total_costo_equipaje:,.0f}"
+            }
+
+        except Exception as e:
+            print(f"Error en Check-In: {e}")
+            return {"success": False, "message": f"Error interno: {str(e)}"}
                 
     def guardar_datos_cierre(self) -> None:
         """
