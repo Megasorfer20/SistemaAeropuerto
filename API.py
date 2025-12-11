@@ -268,8 +268,12 @@ class API:
         return resultado
 
     def buscarVuelos(self, filtros: Dict) -> List[Dict]:
-        # (Lógica de búsqueda se mantiene igual...)
+        """
+        Filtra los vuelos (Objetos) y retorna diccionarios.
+        """
         resultado = []
+        
+        # Obtener filtros y limpiar strings
         id_b = filtros.get("id", "").strip()
         origen_b = filtros.get("origen", "").lower().strip()
         destino_b = filtros.get("destino", "").lower().strip()
@@ -277,25 +281,59 @@ class API:
         hora_inicio_str = filtros.get("horaInicio", "")
         hora_fin_str = filtros.get("horaFin", "")
 
+        # Mapeo de números de día (datetime.weekday()) a nombres en español
+        dias_semana_map = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"]
+
         for v in self.__vuelos:
-            if id_b and v["id"] != id_b: continue
-            if origen_b and origen_b not in v["origen"].lower(): continue
-            if destino_b and destino_b not in v["destino"].lower(): continue
-            if dia_b and dia_b != "TODOS" and dia_b != v["fechaDiaSalida"].upper(): continue
+            # v es un OBJETO Vuelo, usamos getters
             
-            try:
-                if hora_inicio_str or hora_fin_str:
-                    hora_vuelo = datetime.strptime(v["fechaHoraSalida"], "%H:%M").time()
-                    if hora_inicio_str:
-                        hora_min = datetime.strptime(hora_inicio_str, "%H:%M").time()
-                        if hora_vuelo < hora_min: continue
-                    if hora_fin_str:
-                        hora_max = datetime.strptime(hora_fin_str, "%H:%M").time()
-                        if hora_vuelo > hora_max: continue
-            except ValueError:
+            # 1. Filtro ID
+            if id_b and v.getCodigo() != id_b:
                 continue
 
-            resultado.append(v)
+            # 2. Filtro Origen
+            if origen_b and origen_b not in v.getOrigen().lower():
+                continue
+            
+            # 3. Filtro Destino
+            if destino_b and destino_b not in v.getDestino().lower():
+                continue
+
+            # Obtenemos el objeto datetime del vuelo una sola vez
+            dt_vuelo = v.getFechaHoraSalida()
+
+            # 4. Filtro Día
+            if dia_b and dia_b != "TODOS":
+                # Convertimos el día del vuelo (0-6) a texto (LUNES-DOMINGO)
+                dia_vuelo_str = dias_semana_map[dt_vuelo.weekday()]
+                
+                # Manejo especial para tildes si es necesario o comparaciones directas
+                if dia_b == "MIERCOLES" and dia_vuelo_str == "MIÉRCOLES": pass # Ajuste opcional
+                elif dia_b != dia_vuelo_str:
+                    continue
+
+            # 5. Filtro Rango Horario
+            try:
+                if hora_inicio_str or hora_fin_str:
+                    hora_vuelo = dt_vuelo.time()
+                    
+                    if hora_inicio_str:
+                        hora_min = datetime.strptime(hora_inicio_str, "%H:%M").time()
+                        if hora_vuelo < hora_min:
+                            continue
+                    
+                    if hora_fin_str:
+                        hora_max = datetime.strptime(hora_fin_str, "%H:%M").time()
+                        if hora_vuelo > hora_max:
+                            continue
+            except ValueError:
+                print(f"Error comparando horas para vuelo {v.getCodigo()}")
+                continue
+
+            # SI PASA TODOS LOS FILTROS:
+            # Convertimos el objeto Vuelo a diccionario para enviarlo al Frontend
+            resultado.append(self._vuelo_to_dict(v))
+        
         return resultado
     
     def _vuelo_to_dict(self, v: Vuelo) -> Dict:
