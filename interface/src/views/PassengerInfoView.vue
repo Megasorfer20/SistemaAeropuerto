@@ -359,6 +359,8 @@ export default {
     volver() {
       this.$router.go(-1)
     },
+
+    // AQUÍ ESTÁ LA FUNCIÓN CORREGIDA SIN CÓDIGO SOBRANTE
     async confirmarReserva() {
       if (!this.formularioValido) {
         alert('Por favor, completa todos los campos obligatorios')
@@ -369,59 +371,45 @@ export default {
       const payload = {
         vuelo_id: this.vuelo.id,
         asientos: this.asientos, // Array de asientos seleccionados
-        pasajeros: this.pasajeros // Array con nombre, doc, email
+        pasajeros: this.pasajeros, // Array con nombre, doc, email
       }
 
       try {
         // 2. Llamamos a la API de Python
         // Verificamos si window.pywebview existe (si estamos ejecutando desde Python)
         if (window.pywebview) {
-            const respuesta = await window.pywebview.api.crearReserva(payload)
-            
-            if (respuesta.success) {
-                // 3. Si Python dice OK, guardamos el resultado para mostrarlo en la confirmación
-                const datosReservaFinal = {
-                    codigo: respuesta.codigo, // El código que generó Python
-                    vuelo: this.vuelo,
-                    asientos: this.asientos,
-                    pasajeros: this.pasajeros,
-                    total: this.calcularTotal(),
-                    fecha: new Date().toISOString()
-                }
-                
-                // Guardamos en localStorage solo para mostrar la pantalla de confirmación "bonita"
-                localStorage.setItem('reservaActual', JSON.stringify(datosReservaFinal))
-                
-                // Redirigir
-                this.$router.push('/confirmacion')
-            } else {
-                alert("Error creando la reserva: " + respuesta.message)
+          const respuesta = await window.pywebview.api.crearReserva(payload)
+
+          if (respuesta.success) {
+            // 3. Si Python dice OK, guardamos el resultado para mostrarlo en la confirmación
+            const datosReservaFinal = {
+              codigo: respuesta.codigo, // El código que generó Python
+              vuelo: this.vuelo,
+              asientos: this.asientos,
+              pasajeros: this.pasajeros,
+              total: this.calcularTotal(),
+              fecha: new Date().toISOString(),
             }
-        } else {
-            // Modo prueba (si no abres desde python)
-            alert("Modo prueba: No se puede guardar en base de datos sin Python.")
+
+            // Guardamos en localStorage solo para mostrar la pantalla de confirmación "bonita"
+            localStorage.setItem('reservaActual', JSON.stringify(datosReservaFinal))
+
+            // Redirigir
             this.$router.push('/confirmacion')
+          } else {
+            alert('Error creando la reserva: ' + respuesta.message)
+          }
+        } else {
+          // Modo prueba (si no abres desde python)
+          alert('Modo prueba: No se puede guardar en base de datos sin Python.')
+          this.$router.push('/confirmacion')
         }
       } catch (error) {
         console.error(error)
-        alert("Ocurrió un error de comunicación con el sistema.")
+        alert('Ocurrió un error de comunicación con el sistema.')
       }
     },
 
-      // Guardar información de pasajeros en localStorage
-      const reserva = {
-        vuelo: this.vuelo,
-        asientos: this.asientos,
-        pasajeros: this.pasajeros,
-        total: this.calcularTotal(),
-        fecha: new Date().toISOString(),
-      }
-
-      localStorage.setItem('reservaActual', JSON.stringify(reserva))
-
-      // Navegar a la página de confirmación
-      this.$router.push('/confirmacion')
-    },
     // Ir al inicio
     irAInicio() {
       this.$router.push('/')
