@@ -338,18 +338,6 @@ class API:
 
         return {"success": True, "message": "Registro exitoso (Temporal en memoria)"}
 
-    # ... Resto de métodos (crearReserva, realizarCheckIn, adminGetReporte) se mantienen ...
-    
-    def adminGetReporte(self, filtros: Dict) -> Dict:
-        if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
-            return {"error": "No autorizado"}
-        admin: Administrador = self.__usuarioSesion 
-        ventas = admin.verSillasVendidas(filtros)
-        datos_pasajeros = []
-        if filtros.get("codigo_vuelo"):
-             datos_pasajeros = admin.verDatosPasajeros(filtros["codigo_vuelo"])
-        return {"ventas_por_vuelo": ventas, "pasajeros": datos_pasajeros}
-
     def crearReserva(self, idVuelo: str, pasajerosData: List) -> Dict:
         pass
 
