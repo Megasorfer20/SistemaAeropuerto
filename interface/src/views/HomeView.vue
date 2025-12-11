@@ -1,27 +1,69 @@
 <template>
-  <!-- Vista de detalles de un vuelo específico -->
-  <div class="flight-selection-view">
+  <!-- Página principal con lista de vuelos disponibles -->
+  <div class="home-view">
     <NavBar />
 
-    <div class="container flight-details-container">
-      <!-- Botón para volver atrás -->
-      <button @click="volver" class="btn-back">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path
-            d="M20 11H7.83L13.42 5.41L12 4L4 12L12 20L13.41 18.59L7.83 13H20V11Z"
-            fill="currentColor"
-          />
-        </svg>
-        Volver a la lista
-      </button>
+    <!-- Hero section con imagen de fondo -->
+    <div class="hero-section">
+      <div class="hero-overlay">
+        <div class="container hero-content">
+          <h1 class="hero-title fade-in">Descubre el Mundo con AeroRed</h1>
+          <p class="hero-subtitle fade-in" style="animation-delay: 0.2s">
+            Los mejores destinos a tu alcance
+          </p>
+        </div>
+      </div>
+    </div>
 
-      <div v-if="vuelo" class="flight-details-content">
-        <!-- Header con información principal -->
-        <div class="flight-main-card card fade-in">
-          <div class="flight-main-header">
-            <div>
-              <div class="flight-number-large">
-                <svg viewBox="0 0 24 24" fill="none">
+    <!-- Sección de filtros y búsqueda -->
+    <div class="container flights-section">
+      <div class="filters-card card fade-in">
+        <h2 class="filters-title">Buscar Vuelos</h2>
+
+        <div class="filters-grid">
+          <!-- Filtro por fecha de salida -->
+          <div class="filter-group">
+            <label class="form-label">Fecha de Salida</label>
+            <input type="date" v-model="filtroFecha" class="form-input" :min="fechaMinima" />
+          </div>
+
+          <!-- Filtro por destino -->
+          <div class="filter-group">
+            <label class="form-label">Destino</label>
+            <select v-model="filtroDestino" class="form-input">
+              <option value="">Todos los destinos</option>
+              <option v-for="destino in destinosUnicos" :key="destino" :value="destino">
+                {{ destino }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Botón para limpiar filtros -->
+          <div class="filter-group filter-actions">
+            <button @click="limpiarFiltros" class="btn btn-secondary">Limpiar Filtros</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de vuelos -->
+      <div class="flights-list">
+        <div class="flights-header">
+          <h2 class="section-title">Vuelos Disponibles Hoy</h2>
+          <p class="flights-count">{{ vuelosFiltrados.length }} vuelos encontrados</p>
+        </div>
+
+        <!-- Grid de tarjetas de vuelos -->
+        <div v-if="vuelosFiltrados.length > 0" class="flights-grid">
+          <div
+            v-for="(vuelo, index) in vuelosFiltrados"
+            :key="vuelo.id"
+            class="flight-card card fade-in"
+            :style="{ animationDelay: `${index * 0.1}s` }"
+          >
+            <!-- Header de la tarjeta -->
+            <div class="flight-header">
+              <div class="flight-number">
+                <svg class="flight-icon" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M21 16V14L13 9V3.5C13 2.67 12.33 2 11.5 2C10.67 2 10 2.67 10 3.5V9L2 14V16L10 13.5V19L8 20.5V22L11.5 21L15 22V20.5L13 19V13.5L21 16Z"
                     fill="currentColor"
@@ -29,94 +71,79 @@
                 </svg>
                 <span>{{ vuelo.numeroVuelo }}</span>
               </div>
-              <p class="flight-subtitle">{{ vuelo.origen }} → {{ vuelo.destino }}</p>
-            </div>
-            <div class="flight-price-large">
-              <span class="price-label">Desde</span>
-              <span class="price-value">${{ vuelo.precio.toFixed(2) }}</span>
-            </div>
-          </div>
-
-          <!-- Información de horarios -->
-          <div class="flight-schedule">
-            <div class="schedule-item">
-              <div class="schedule-label">Salida</div>
-              <div class="schedule-value">{{ vuelo.horaSalida }}</div>
-              <div class="schedule-date">{{ formatearFecha(vuelo.fechaSalida) }}</div>
+              <div class="flight-price">${{ vuelo.precio.toFixed(2) }}</div>
             </div>
 
-            <div class="schedule-divider">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M16.01 11H4V13H16.01V16L20 12L16.01 8V11Z" fill="currentColor" />
-              </svg>
-              <span>{{ calcularDuracion(vuelo) }}</span>
-            </div>
-
-            <div class="schedule-item">
-              <div class="schedule-label">Llegada</div>
-              <div class="schedule-value">{{ vuelo.horaLlegada }}</div>
-              <div class="schedule-date">{{ formatearFecha(vuelo.fechaLlegada) }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Grid con información adicional -->
-        <div class="info-grid">
-          <div class="info-card card fade-in" style="animation-delay: 0.1s">
-            <h3 class="info-title">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M4 4H20V6H4V4ZM4 11H12V13H4V11ZM4 18H20V20H4V18ZM16 13H20V17H16V13Z"
-                  fill="currentColor"
-                />
-              </svg>
-              Asientos Disponibles
-            </h3>
-            <div class="seat-types">
-              <div class="seat-type">
-                <span class="seat-label">Clase Normal</span>
-                <span class="seat-count">{{ vuelo.asientosNormales }} asientos</span>
+            <!-- Información de ruta -->
+            <div class="flight-route">
+              <div class="route-point">
+                <div class="route-city">{{ vuelo.origen }}</div>
+                <div class="route-time">{{ vuelo.horaSalida }}</div>
+                <div class="route-date">{{ formatearFecha(vuelo.fechaSalida) }}</div>
               </div>
-              <div class="seat-type">
-                <span class="seat-label">Clase VIP</span>
-                <span class="seat-count">{{ vuelo.asientosVIP }} asientos</span>
+
+              <div class="route-line">
+                <div class="route-arrow">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M16.01 11H4V13H16.01V16L20 12L16.01 8V11Z" fill="currentColor" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="route-point">
+                <div class="route-city">{{ vuelo.destino }}</div>
+                <div class="route-time">{{ vuelo.horaLlegada }}</div>
+                <div class="route-date">{{ formatearFecha(vuelo.fechaLlegada) }}</div>
               </div>
             </div>
-          </div>
 
-          <div class="info-card card fade-in" style="animation-delay: 0.2s">
-            <h3 class="info-title">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z"
-                  fill="currentColor"
-                />
-              </svg>
-              Destino
-            </h3>
-            <p class="destination-name">{{ vuelo.destino }}</p>
-            <p class="destination-description">Un lugar increíble para visitar</p>
+            <!-- Información adicional -->
+            <div class="flight-info">
+              <div class="info-item">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M7 11H9V13H7V11ZM21 5V19C21 20.1 20.1 21 19 21H5C3.89 21 3 20.1 3 19V5C3 3.9 3.89 3 5 3H6V1H8V3H16V1H18V3H19C20.1 3 21 3.9 21 5ZM5 7H19V5H5V7ZM19 19V9H5V19H19ZM15 13V11H17V13H15ZM11 13V11H13V13H11Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                <span>{{ calcularDuracion(vuelo) }}</span>
+              </div>
+              <div class="info-item">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 4H20V6H4V4ZM4 11H12V13H4V11ZM4 18H20V20H4V18ZM16 13H20V17H16V13Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                <span>{{ vuelo.asientosNormales + vuelo.asientosVIP }} asientos</span>
+              </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flight-actions">
+              <button @click="verDetalles(vuelo.id)" class="btn btn-outline">Ver Detalles</button>
+              <button
+                @click="reservarVuelo(vuelo.id)"
+                class="btn btn-primary"
+                :disabled="!usuarioActual"
+              >
+                {{ usuarioActual ? 'Reservar' : 'Inicia Sesión para Reservar' }}
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Botones de acción -->
-        <div class="action-buttons card fade-in" style="animation-delay: 0.3s">
-          <button
-            @click="reservarVuelo"
-            class="btn btn-primary btn-large"
-            :disabled="!usuarioActual"
-          >
-            {{ usuarioActual ? 'Continuar con la Reserva' : 'Inicia Sesión para Reservar' }}
-          </button>
-          <p v-if="!usuarioActual" class="auth-notice">
-            Necesitas iniciar sesión para poder reservar este vuelo
-          </p>
+        <!-- Mensaje cuando no hay vuelos -->
+        <div v-else class="no-flights card">
+          <svg class="no-flights-icon" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M21 16V14L13 9V3.5C13 2.67 12.33 2 11.5 2C10.67 2 10 2.67 10 3.5V9L2 14V16L10 13.5V19L8 20.5V22L11.5 21L15 22V20.5L13 19V13.5L21 16Z"
+              fill="currentColor"
+            />
+          </svg>
+          <h3>No se encontraron vuelos</h3>
+          <p>Intenta ajustar tus filtros de búsqueda</p>
         </div>
-      </div>
-
-      <!-- Mensaje de carga o error -->
-      <div v-else class="loading-card card">
-        <p>Cargando información del vuelo...</p>
       </div>
     </div>
   </div>
@@ -124,31 +151,74 @@
 
 <script>
 import NavBar from '../components/NavBar.vue'
-import vuelosData from '../data/vuelos.json'
+// import vuelosData from '../data/vuelos.json'
 
 export default {
-  name: 'FlightSelectionView',
+  name: 'HomeView',
   components: {
     NavBar,
   },
   data() {
     return {
-      // Vuelo actual
-      vuelo: null,
+      // Datos de vuelos cargados desde JSON
+      vuelos: [],
+      // Filtros aplicados
+      filtroFecha: '',
+      filtroDestino: '',
       // Usuario actual
       usuarioActual: null,
+      // Fecha mínima para el selector de fecha (hoy)
+      fechaMinima: new Date().toISOString().split('T')[0],
     }
   },
+  computed: {
+    // Obtener lista de destinos únicos para el filtro
+    destinosUnicos() {
+      return [...new Set(this.vuelos.map((v) => v.destino))].sort()
+    },
+    // Filtrar vuelos según los criterios seleccionados
+    vuelosFiltrados() {
+      return this.vuelos.filter((vuelo) => {
+        // Filtro por fecha
+        const cumpleFecha = !this.filtroFecha || vuelo.fechaSalida === this.filtroFecha
+        // Filtro por destino
+        const cumpleDestino = !this.filtroDestino || vuelo.destino === this.filtroDestino
+
+        return cumpleFecha && cumpleDestino && vuelo.disponible
+      })
+    },
+  },
   mounted() {
-    // Cargar datos al montar
-    this.cargarVuelo()
+    // Cargar datos al montar el componente
+    // Verificamos si pywebview ya está inyectado
+    if (window.pywebview) {
+      this.cargarVuelos()
+    } else {
+      // Si no, esperamos al evento 'pywebviewready'
+      window.addEventListener('pywebviewready', () => {
+        this.cargarVuelos()
+      });
+    }
+
+    console.log("Usuario actual en HomeView:", this.usuarioActual);
+    console.log("Vuelos cargados en HomeView:", this.vuelos);
+
     this.cargarUsuario()
   },
   methods: {
-    // Cargar información del vuelo desde el ID en la ruta
-    cargarVuelo() {
-      const vueloId = parseInt(this.$route.params.id)
-      this.vuelo = vuelosData.find((v) => v.id === vueloId)
+    // Cargar vuelos desde el archivo JSON
+    cargarVuelos() {
+      // Llamamos al método que creamos en la clase API
+      window.pywebview.api
+        .obtenerVuelosIniciales()
+        .then((response) => {
+          console.log('Datos recibidos:', response)
+          // Asignamos la respuesta a nuestra variable de Vue
+          this.listaVuelos = response
+        })
+        .catch((error) => {
+          console.error('Error comunicando con Python:', error)
+        })
     },
     // Cargar usuario desde localStorage
     cargarUsuario() {
@@ -157,32 +227,38 @@ export default {
         this.usuarioActual = JSON.parse(usuario)
       }
     },
-    // Volver a la lista de vuelos
-    volver() {
-      this.$router.push('/')
+    // Limpiar todos los filtros
+    limpiarFiltros() {
+      this.filtroFecha = ''
+      this.filtroDestino = ''
     },
-    // Formatear fecha
+    // Formatear fecha para mostrar de forma legible
     formatearFecha(fecha) {
       const date = new Date(fecha + 'T00:00:00')
       return date.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
+        day: '2-digit',
+        month: 'short',
       })
     },
-    // Calcular duración del vuelo
+    // Calcular duración estimada del vuelo
     calcularDuracion(vuelo) {
       const salida = new Date(`${vuelo.fechaSalida}T${vuelo.horaSalida}`)
       const llegada = new Date(`${vuelo.fechaLlegada}T${vuelo.horaLlegada}`)
       const duracion = (llegada - salida) / (1000 * 60 * 60)
       return `${Math.floor(duracion)}h ${Math.round((duracion % 1) * 60)}m`
     },
+    // Ver detalles de un vuelo
+    verDetalles(vueloId) {
+      this.$router.push(`/vuelo/${vueloId}`)
+    },
     // Iniciar proceso de reserva
-    reservarVuelo() {
+    reservarVuelo(vueloId) {
       if (!this.usuarioActual) {
+        // Redirigir a login si no está autenticado
         this.$router.push('/login')
       } else {
-        this.$router.push(`/asientos/${this.vuelo.id}`)
+        // Ir a selección de asientos
+        this.$router.push(`/asientos/${vueloId}`)
       }
     },
   },
@@ -190,251 +266,5 @@ export default {
 </script>
 
 <style scoped>
-.flight-selection-view {
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.flight-details-container {
-  padding: 40px 20px;
-}
-
-.btn-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  color: var(--text-dark);
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-bottom: 24px;
-  transition: color 0.3s ease;
-}
-
-.btn-back:hover {
-  color: var(--primary-red);
-}
-
-.btn-back svg {
-  width: 20px;
-  height: 20px;
-}
-
-.flight-details-content {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.flight-main-card {
-  padding: 32px;
-  margin-bottom: 24px;
-}
-
-.flight-main-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  margin-bottom: 32px;
-}
-
-.flight-number-large {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 8px;
-}
-
-.flight-number-large svg {
-  width: 36px;
-  height: 36px;
-  color: var(--primary-red);
-}
-
-.flight-subtitle {
-  font-size: 18px;
-  color: var(--text-light);
-}
-
-.flight-price-large {
-  text-align: right;
-}
-
-.price-label {
-  display: block;
-  font-size: 14px;
-  color: var(--text-light);
-  margin-bottom: 4px;
-}
-
-.price-value {
-  font-size: 40px;
-  font-weight: 700;
-  color: var(--primary-red);
-}
-
-.flight-schedule {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 32px;
-  padding: 24px;
-  background-color: var(--light-gray);
-  border-radius: 12px;
-}
-
-.schedule-item {
-  text-align: center;
-}
-
-.schedule-label {
-  font-size: 14px;
-  color: var(--text-light);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.schedule-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--primary-red);
-  margin-bottom: 4px;
-}
-
-.schedule-date {
-  font-size: 14px;
-  color: var(--text-dark);
-  text-transform: capitalize;
-}
-
-.schedule-divider {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.schedule-divider svg {
-  width: 32px;
-  height: 32px;
-  color: var(--primary-red);
-}
-
-.schedule-divider span {
-  font-size: 14px;
-  color: var(--text-light);
-  font-weight: 600;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.info-card {
-  padding: 24px;
-}
-
-.info-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-dark);
-  margin-bottom: 20px;
-}
-
-.info-title svg {
-  width: 24px;
-  height: 24px;
-  color: var(--primary-red);
-}
-
-.seat-types {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.seat-type {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background-color: var(--light-gray);
-  border-radius: 8px;
-}
-
-.seat-label {
-  font-weight: 500;
-  color: var(--text-dark);
-}
-
-.seat-count {
-  font-weight: 700;
-  color: var(--primary-red);
-}
-
-.destination-name {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 8px;
-}
-
-.destination-description {
-  color: var(--text-light);
-}
-
-.action-buttons {
-  padding: 32px;
-  text-align: center;
-}
-
-.btn-large {
-  width: 100%;
-  max-width: 400px;
-  padding: 16px 32px;
-  font-size: 18px;
-  margin-bottom: 16px;
-}
-
-.auth-notice {
-  color: var(--text-light);
-  font-size: 14px;
-}
-
-.loading-card {
-  padding: 60px;
-  text-align: center;
-  color: var(--text-light);
-}
-
-@media (max-width: 768px) {
-  .flight-main-header {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .flight-price-large {
-    text-align: left;
-  }
-
-  .flight-schedule {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .schedule-divider {
-    transform: rotate(90deg);
-  }
-}
+@import '../assets/styles/HomeView.css';
 </style>

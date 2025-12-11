@@ -30,11 +30,7 @@ class API:
 
     def iniciar(self) -> None:
         self.__vuelos = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
-        
-        pass
-        if not os.path.exists("database"):
-            os.makedirs("database")
-        print("Sistema iniciado y listo para usar :).")
+
 
     def login(self, doc: str, password: str) -> Dict:
         # 1. BUSCAR EN ADMINISTRADORES
@@ -80,21 +76,7 @@ class API:
         return {"success": False, "message": "Error al guardar"}
 
     def buscarVuelos(self, filtros: Dict) -> List[Vuelo]:
-        keys = ["codigo", "origen", "destino", "dia", "hora", "sillas_pref", "sillas_eco"]
-        vuelos = self.__gestor.cargarDatos("vuelos.txt", keys)
-        resultado = []
-
-        origen_b = filtros.get("origen", "").lower()
-        destino_b = filtros.get("destino", "").lower()
-
-        for v in vuelos:
-            match_origen = not origen_b or origen_b in v["origen"].lower()
-            match_destino = not destino_b or destino_b in v["destino"].lower()
-
-            if match_origen and match_destino:
-                v["sillas_pref"] = int(v["sillas_pref"])
-                v["sillas_eco"] = int(v["sillas_eco"])
-                resultado.append(v)
+        resultado = self.__vuelos
         
         return resultado
 
@@ -145,10 +127,6 @@ def main():
         
         prueba = API()
         
-        prueba.iniciar()
-        prueba.login("1001", "12345")
-        
-        
         asiento1 = AsientoPreferencial(
         id="A1",
         fila=10,
@@ -181,7 +159,7 @@ def main():
         # webview.create_window('Gestor de pacientes', index_file, js_api=api)
         webview.create_window("Dev", "http://localhost:5173", js_api=api)
         
-        # webview.start(debug=True, http_server=True)
+        webview.start(debug=True, http_server=True)
         # webview.start( http_server=True)
     finally:
         ## PRUEBAS EN CONSOLA
