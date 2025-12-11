@@ -42,7 +42,8 @@ class API:
             if user_temp._passwordHash == password or user_temp.verificarPassword(password):
                 self.__usuarioSesion = user_temp
                 return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente, "millas": user_temp.getMillas()}}
-        return {"success": False, "message": "Credenciales inválidas."}
+        return {"success": False, "message": "Credenciales inválidas."}}}
+
     def registro(self, datos: Dict) -> bool:
         pass
 
