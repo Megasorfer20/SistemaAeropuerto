@@ -202,16 +202,16 @@
               <div class="price-items">
                 <div class="price-detail">
                   <span>Asientos Normales ({{ contarNormales() }})</span>
-                  <span>${{ calcularPrecioNormales().toFixed(2) }}</span>
+                  <span>${{ formatPrice(calcularPrecioNormales())}}</span>
                 </div>
                 <div class="price-detail">
                   <span>Asientos VIP ({{ contarVIP() }})</span>
-                  <span>${{ calcularPrecioVIP().toFixed(2) }}</span>
+                  <span>${{ formatPrice(calcularPrecioVIP()) }}</span>
                 </div>
                 <div class="price-divider"></div>
                 <div class="price-detail price-total">
                   <span>Total</span>
-                  <span>${{ calcularTotal().toLocaleString('es-CO', { maximumFractionDigits: 0 })}}</span>
+                  <span>${{ formatPrice(calcularTotal())}}</span>
                 </div>
               </div>
             </div>
@@ -280,6 +280,9 @@ export default {
     this.inicializarPasajeros()
   },
   methods: {
+    formatPrice(value) {
+      return value.toLocaleString('es-CO')
+    },
     // Cargar datos desde localStorage
     cargarDatos() {
       // Cargar vuelo
@@ -331,20 +334,27 @@ export default {
       return this.asientos.filter((a) => a.tipo === 'vip').length
     },
     // Calcular precio de asientos normales
+    // Reemplaza calcularPrecioNormales con esto:
     calcularPrecioNormales() {
-      return this.contarNormales() * this.vuelo.precio
+      // Filtramos los asientos normales y sumamos sus precios individuales
+      // (Estos precios ya fueron guardados por la vista anterior)
+      return this.asientos
+        .filter(a => a.tipo === 'normal' || a.tipo === 'economica')
+        .reduce((total, asiento) => total + (Number(asiento.precio) || 0), 0);
     },
-    // Calcular precio de asientos VIP
+
+    // Reemplaza calcularPrecioVIP con esto:
     calcularPrecioVIP() {
-      const asientosVIP = this.asientos.filter((a) => a.tipo === 'vip')
-      return (
-        asientosVIP.reduce((total, asiento) => total + asiento.precio, 0) +
-        this.contarVIP() * this.vuelo.precio
-      )
+      // Filtramos los VIP y sumamos sus precios
+      return this.asientos
+        .filter(a => a.tipo === 'vip')
+        .reduce((total, asiento) => total + (Number(asiento.precio) || 0), 0);
     },
-    // Calcular total
+
+    // Reemplaza calcularTotal con esto (por seguridad):
     calcularTotal() {
-      return this.calcularPrecioNormales() + this.calcularPrecioVIP()
+      // Simplemente suma el precio de TODOS los asientos seleccionados
+      return this.asientos.reduce((total, asiento) => total + (Number(asiento.precio) || 0), 0);
     },
     // Formatear fecha
     formatearFecha(fecha) {
