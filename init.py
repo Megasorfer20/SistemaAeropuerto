@@ -142,6 +142,13 @@ class API:
 def main():
     try:
         # Pruebas en consola
+        
+        prueba = API()
+        
+        prueba.iniciar()
+        prueba.login("1001", "12345")
+        
+        
         asiento1 = AsientoPreferencial(
         id="A1",
         fila=10,
@@ -152,7 +159,16 @@ def main():
         asiento1._seleccionManual = False
         print(asiento1.calcularPrecio(False))
         
-        # Activar la interfaz
+        
+        
+        
+        
+        
+        
+        
+        
+        ## ESTO ES LO QUE SE VA A PRESENTAR A LA PROFESORA MAÑANA
+        
         dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
         index_file = os.path.join(dist_dir, 'index.html')
 
@@ -169,9 +185,13 @@ def main():
         # webview.start(debug=True, http_server=True)
         # webview.start( http_server=True)
     finally:
-        #PRUEBAS EN CONSOLA
+        ## PRUEBAS EN CONSOLA
         
         
+        
+        
+        
+        ## ESTO ES LO QUE SE VA A PRESENTAR A LA PROFESORA MAÑANA
         # Cerrar la aplicación
         print("Cerrando la aplicación...")
 
