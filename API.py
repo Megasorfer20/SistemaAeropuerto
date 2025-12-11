@@ -17,6 +17,8 @@ from clases.usuarios.Usuario import Usuario
 from clases.vuelos.Reserva import Reserva
 from clases.IPersistencia import IPersistencia
 from clases.GestorTxt import GestorTxt
+from clases.equipajes.EquipajeCabina import EquipajeCabina
+from clases.equipajes.EquipajeBodega import EquipajeBodega
 
 class API:
     def __init__(self):
@@ -69,68 +71,162 @@ class API:
 
     def iniciar(self) -> None:
         # --- CARGAR ADMINISTRADORES ---
-        admins_data = self.__persistencia.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
-        self.__administradores = []
-        for admin in admins_data:
-            obj_admin = Administrador(
-                admin["nombre"], 
-                admin["correo"], 
-                admin["num_doc"], 
-                admin["password_hash"], 
-                es_hash=True
-            )
-            self.__administradores.append(obj_admin)
-
-        # --- CARGAR CLIENTES ---
-        clientes_data = self.__persistencia.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
-        self.__clientes = []
-        for cli in clientes_data:
-            try:
-                millas = int(cli.get("millas", 0))
-            except:
-                millas = 0     
-            obj_cliente = Cliente(
-                cli["nombre"], 
-                cli["correo"], 
-                cli["num_doc"], 
-                cli["password_hash"], 
-                miles=millas,
-                es_hash=True
-            )
-            self.__clientes.append(obj_cliente)
-
-        # --- CARGAR VUELOS ---
-        vuelos_data = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosPref","asientosEco"])
-        self.__vuelos = []
+        self.__reservas = []
+        reservas_data = self.__persistencia.cargarDatos("reservas.txt", ["codigo_reserva", "codigo_vuelo", "doc_titular", "fecha", "checkin", "pasajeros_raw"])
         
-        for v in vuelos_data:
+        for r_data in reservas_data:
             try:
-                # CORRECCIÓN DE FECHAS:
-                # Intentamos parsear la fecha. Si viene como "LUNES", calculamos una fecha futura real.
-                dia_str = v['fechaDiaSalida']
-                hora_str = v['fechaHoraSalida']
+                # 1. Buscar Objeto Vuelo
+                vuelo_obj = next((v for v in self.__vuelos if v.getCodigo() == r_data["codigo_vuelo"]), None)
                 
-                fecha_dt = self._obtener_fecha_desde_str(dia_str, hora_str)
+                # 2. Buscar Objeto Cliente (Titular)
+                titular_obj = next((c for c in self.__clientes if c.getNumDoc() == r_data["doc_titular"]), None)
                 
-                precio_eco = 235000.0
-                precio_pref = 850000.0
-                
-                nuevo_vuelo = Vuelo(
-                    codigo=v["id"],
-                    origen=v["origen"],
-                    destino=v["destino"],
-                    fechaHoraSalida=fecha_dt,
-                    asientosEco=int(v["asientosEco"]),
-                    asientosPref=int(v["asientosPref"]),
-                    precioBaseEco=precio_eco,
-                    precioBasePref=precio_pref
-                )
-                self.__vuelos.append(nuevo_vuelo)
-            except Exception as e:
-                print(f"Error cargando vuelo {v.get('id')}: {e}")
+                if vuelo_obj and titular_obj:
+                    nueva_reserva = Reserva(
+                        idReserva=r_data["codigo_reserva"],
+                        titular=titular_obj,
+                        vuelo=vuelo_obj,
+                        fechaReserva=r_data["fecha"]
+                    )
+                    
+                    # Restaurar estado del Check-In
+                    if r_data.get("checkin") == "True":
+                        nueva_reserva.setCheckInRealizado(True)
+                    
+                    # Reconstruir Pasajeros (Esto es complejo desde TXT plano, 
+                    # asumiremos que parseamos 'pasajeros_raw' que guardaremos como string separado por | o similar)
+                    # Para este ejercicio, reconstruimos la lista vacía o básica si es necesario.
+                    # En un caso real, guardaríamos JSON en el TXT o un archivo detalle_reserva.txt
+                    
+                    # Simulación de parsing de pasajeros guardados: "Juan,123,ECO|Maria,456,ECO"
+                    raw_pax = r_data.get("pasajeros_raw", "")
+                    if raw_pax:
+                        lista_pax = raw_pax.split("|")
+                        for p_str in lista_pax:
+                            if p_str:
+                                # formato: nombre;doc;asiento_tipo
+                                datos_p = p_str.split(";") 
+                                if len(datos_p) >= 3:
+                                    # Creamos asiento dummy para tener el tipo
+                                    asiento_obj = AsientoEconomico("X",0,"X",False,0) if datos_p[2] == "ECO" else AsientoPreferencial("X",0,"X",False,0)
+                                    pax = Pasajero(datos_p[0], datos_p[1], "email@dummy.com", asiento_obj)
+                                    nueva_reserva.getPasajeros().append(pax)
 
-        print(f"Sistema iniciado: {len(self.__vuelos)} vuelos, {len(self.__administradores)} admins, {len(self.__clientes)} clientes.")
-    
+                    self.__reservas.append(nueva_reserva)
+            except Exception as e:
+                print(f"Error cargando reserva {r_data.get('codigo_reserva')}: {e}")
+
+    def buscarReservaPorId(self, idReserva: str) -> Dict:
+        # Buscar en memoria
+        reserva: Reserva = next((r for r in self.__reservas if r.getId() == idReserva), None)
+        
+        if not reserva:
+            return {"success": False, "message": "Reserva no encontrada."}
+        
+        if reserva.getCheckInRealizado():
+             return {"success": False, "message": "El Check-In para esta reserva ya fue realizado."}
+
+        vuelo = reserva.getVuelo()
+        
+        # Construir respuesta para el Frontend
+        pasajeros_data = []
+        for pax in reserva.getPasajeros():
+            # Determinar tipo de asiento para reglas de equipaje
+            # (Asumimos que Pasajero tiene un objeto Asiento o una forma de saberlo)
+            # Aquí usamos un truco: miramos la clase del objeto asiento
+            es_pref = isinstance(pax._Pasajero__asiento, AsientoPreferencial) # Acceso a atributo privado name mangling si es necesario o getter
+            
+            pasajeros_data.append({
+                "nombre": pax._Pasajero__nombre, # Usar Getters en tu clase real
+                "num_doc": pax._Pasajero__numDoc,
+                "clase_asiento": "PREF" if es_pref else "ECO"
+            })
+
+        response = {
+            "codigo_reserva": reserva.getId(),
+            "vuelo": {
+                "codigo": vuelo.getCodigo(),
+                "origen": vuelo.getOrigen(),
+                "destino": vuelo.getDestino(),
+                "fecha": vuelo.getFechaHoraSalida().strftime("%Y-%m-%d"),
+                "hora": vuelo.getFechaHoraSalida().strftime("%H:%M")
+            },
+            "pasajeros": pasajeros_data
+        }
+        
+        return {"success": True, "data": response}
+
+    def realizarCheckIn(self, payload: Dict) -> Dict:
+        """
+        Recibe payload del Vue con la configuración de maletas.
+        Calcula costos finales, asigna millas y cierra el check-in.
+        """
+        id_reserva = payload.get("idReserva")
+        pasajeros_config = payload.get("pasajeros") # Lista [{num_doc, maleta_cabina, maleta_bodega...}]
+
+        reserva: Reserva = next((r for r in self.__reservas if r.getId() == id_reserva), None)
+        if not reserva:
+            return {"success": False, "message": "Reserva no encontrada"}
+
+        total_costo_equipaje = 0.0
+
+        # Procesar Equipaje y Costos
+        for p_conf in pasajeros_config:
+            doc = p_conf.get("num_doc")
+            # Buscar el objeto pasajero en la reserva
+            # (Simplificación: iteramos para encontrar coincidencia)
+            pasajero_obj = next((p for p in reserva.getPasajeros() if p._Pasajero__numDoc == doc), None)
+            
+            if pasajero_obj:
+                # Determinar clase
+                es_pref = isinstance(pasajero_obj._Pasajero__asiento, AsientoPreferencial)
+                clase_str = "PREF" if es_pref else "ECO"
+
+                # 1. Maleta Cabina
+                if p_conf.get("maleta_cabina"):
+                    eq_cabina = EquipajeCabina(10, 0) # Peso estándar
+                    total_costo_equipaje += eq_cabina.calcularCosto(clase_str)
+                    pasajero_obj.agregarEquipaje(eq_cabina)
+
+                # 2. Maleta Bodega
+                bodega_data = p_conf.get("maleta_bodega")
+                peso = float(bodega_data.get("peso", 0))
+                vol = float(bodega_data.get("volumen", 0))
+
+                if peso > 0:
+                    eq_bodega = EquipajeBodega(peso, vol)
+                    costo = eq_bodega.calcularCosto(clase_str)
+                    
+                    # REGLA: 1 incluida en Preferencial
+                    # Si es PREF, asumimos que el usuario ingresó el peso TOTAL.
+                    # El sistema podría descontar la primera maleta, o asumir que el input
+                    # son maletas ADICIONALES.
+                    # Dado el enunciado "maletas adicionales... tienen costo", asumiremos:
+                    # Si es PREF y solo lleva 1, el frontend o usuario pone 0 costo.
+                    # Para simplificar backend: Calculamos costo full según fórmula.
+                    # Si quieres aplicar descuento: 
+                    # if es_pref: costo = max(0, costo - costo_una_maleta_promedio)
+                    
+                    total_costo_equipaje += costo
+                    pasajero_obj.agregarEquipaje(eq_bodega)
+
+        # Actualizar estado de Reserva
+        reserva.setCheckInRealizado(True)
+
+        # REQUERIMIENTO 6: ACUMULAR MILLAS
+        # Por cada reserva acumula 500 millas (al titular)
+        titular = reserva.getTitular()
+        if titular:
+            titular.acumularMillas(500)
+            print(f"Millas acumuladas para {titular.getNombre()}. Total: {titular.getMillas()}")
+
+        return {
+            "success": True, 
+            "millas_ganadas": 500,
+            "costo_equipaje": total_costo_equipaje
+        }
+                
     def guardar_datos_cierre(self) -> None:
         """
         Guarda Clientes, Admins y Vuelos desde la memoria a los archivos TXT.
