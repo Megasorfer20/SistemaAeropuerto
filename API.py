@@ -31,7 +31,8 @@ class API:
         self.__persistencia: Optional[IPersistencia] = GestorTxt()
 
     def iniciar(self) -> None:
-        # --- CARGAR ADMINISTRADORES ---
+        
+        # 2. Cargar Administradores
         admins_data = self.__persistencia.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
         self.__administradores = []
         for admin in admins_data:
