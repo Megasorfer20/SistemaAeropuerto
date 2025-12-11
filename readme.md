@@ -228,3 +228,18 @@ Esta clase es la única que debe instanciarse en el `main.py`.
 - **Manejo de Errores:** Usar bloques `try-except` dentro de la API y retornar diccionarios con llave `{'error': 'Mensaje'}` para que el frontend pueda mostrar alertas (SweetAlert, etc.).
 - **Fechas:** Usar siempre librería `datetime` estándar. El formato en TXT debe ser ISO o consistente (ej: `YYYY-MM-DD HH:MM`).
 - **Idempotencia:** Asegurarse de que cargar los datos dos veces no duplique registros en memoria. Limpiar listas antes de cargar (`self.vuelos = []`).
+
+
+### Datos extras que toca integrar en una futura version del readme
+
+ Edward pon los usuarios Cliente y Admin aca
+
+**Clientes:**
+ ```
+ Cliente: Usuario 2002 / Clave 12345
+ ```
+
+**Admin:**
+ ```
+ Admin: Usuario 1001 / Clave 12345
+ ```

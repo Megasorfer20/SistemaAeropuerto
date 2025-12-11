@@ -30,3 +30,19 @@ coverage
 *.tsbuildinfo
 
 sistema-gestion-aeropuerto-env
+
+**/_pycache_
+**/_pycache_/
+**/__pycache__
+**/__pycache__/
+**/*.pyc
+**/_pycache_
+**/_pycache_/
+*/__pycache__
+*/__pycache__/
+*/*.pyc
+**/_pycache_
+**/_pycache_/
+/__pycache__
+/__pycache__/
+*.pyc
