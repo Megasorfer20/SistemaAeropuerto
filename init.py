@@ -28,8 +28,6 @@ class API:
     def iniciar(self) -> None:
         self.__vuelos = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
         
-        print("Vuelos cargados:", self.__vuelos)
-        
         pass
 
     def login(self, doc: str, password: str) -> Dict:
