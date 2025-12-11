@@ -21,7 +21,7 @@ from clases.GestorTxt import GestorTxt
 class API:
     def __init__(self):
         self.__usuarioSesion: Optional[Usuario] = None
-        self.__vuelos: List[Dict] = [] 
+        self.__vuelos: List[Vuelo] = [] 
         
         # 2. SEPARACIÓN DE USUARIOS EN VARIABLES APARTE
         self.__clientes: List[Cliente] = []
@@ -31,12 +31,9 @@ class API:
         self.__persistencia: Optional[IPersistencia] = GestorTxt()
 
     def iniciar(self) -> None:
-        # 1. Cargar Vuelos
-        self.__vuelos = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
-        
-        # 2. Cargar Administradores
+        # --- CARGAR ADMINISTRADORES ---
         admins_data = self.__persistencia.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
-        self.__administradores = [] # Reiniciar lista
+        self.__administradores = []
         for admin in admins_data:
             obj_admin = Administrador(
                 admin["nombre"], 
@@ -47,15 +44,14 @@ class API:
             )
             self.__administradores.append(obj_admin)
 
-        # 3. Cargar Clientes
+        # --- CARGAR CLIENTES ---
         clientes_data = self.__persistencia.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
-        self.__clientes = [] # Reiniciar lista
+        self.__clientes = []
         for cli in clientes_data:
             try:
                 millas = int(cli.get("millas", 0))
             except:
-                millas = 0
-                
+                millas = 0     
             obj_cliente = Cliente(
                 cli["nombre"], 
                 cli["correo"], 
@@ -66,42 +62,177 @@ class API:
             )
             self.__clientes.append(obj_cliente)
 
-        print(f"Sistema iniciado: {len(self.__vuelos)} vuelos, {len(self.__administradores)} admins, {len(self.__clientes)} clientes.")
+        # --- CARGAR VUELOS ---
+        # Keys del TXT: id, origen, destino, fechaDiaSalida, fechaHoraSalida, asientosEco, asientosPref
+        vuelos_data = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
+        self.__vuelos = []
+        
+        for v in vuelos_data:
+            try:
+                # Reconstruimos el datetime combinando día y hora para crear el objeto Vuelo
+                # Formato esperado en TXT: Dia="2023-11-20", Hora="15:30"
+                fecha_str = f"{v['fechaDiaSalida']} {v['fechaHoraSalida']}"
+                fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M")
+                
+                # Precios fijos según enunciado
+                precio_eco = 235000.0
+                precio_pref = 850000.0
+                
+                nuevo_vuelo = Vuelo(
+                    codigo=v["id"],
+                    origen=v["origen"],
+                    destino=v["destino"],
+                    fechaHoraSalida=fecha_dt,
+                    asientosEco=int(v["asientosEco"]),
+                    asientosPref=int(v["asientosPref"]),
+                    precioBaseEco=precio_eco,
+                    precioBasePref=precio_pref
+                )
+                self.__vuelos.append(nuevo_vuelo)
+            except Exception as e:
+                print(f"Error cargando vuelo {v.get('id')}: {e}")
 
+        print(f"Sistema iniciado: {len(self.__vuelos)} vuelos, {len(self.__administradores)} admins, {len(self.__clientes)} clientes.")
+    
     def guardar_datos_cierre(self) -> None:
         """
-        Este método se llama solo al cerrar la aplicación (desde el finally de init.py).
-        Convierte los objetos en memoria a diccionarios y sobreescribe los TXT.
+        Guarda Clientes, Admins y Vuelos desde la memoria a los archivos TXT.
+        Se ejecuta en el finally de init.py
         """
         print("Guardando datos en disco...")
 
         # 1. Guardar Clientes
-        lista_clientes_dicts = []
+        lista_clientes = []
         for c in self.__clientes:
-            lista_clientes_dicts.append({
+            lista_clientes.append({
                 "nombre": c.getNombre(),
                 "correo": c.getCorreo(),
                 "num_doc": c.getNumDoc(),
                 "password_hash": c.getPasswordHash(),
                 "millas": c.getMillas()
             })
-        self.__persistencia.guardarDatos("clientes.txt", lista_clientes_dicts)
+        self.__persistencia.guardarDatos("clientes.txt", lista_clientes)
 
         # 2. Guardar Administradores
-        lista_admins_dicts = []
+        lista_admins = []
         for a in self.__administradores:
-            lista_admins_dicts.append({
+            lista_admins.append({
                 "nombre": a.getNombre(),
                 "correo": a.getCorreo(),
                 "num_doc": a.getNumDoc(),
                 "password_hash": a.getPasswordHash()
             })
-        self.__persistencia.guardarDatos("administradores.txt", lista_admins_dicts)
-        
+        self.__persistencia.guardarDatos("administradores.txt", lista_admins)
+
+        # 3. Guardar Vuelos (NUEVO)
+        # Convertimos objetos Vuelo -> Diccionarios formato TXT
+        lista_vuelos = []
+        for v in self.__vuelos:
+            # Separamos datetime en Dia y Hora
+            dt = v.getFechaHoraSalida()
+            dia_str = dt.strftime("%Y-%m-%d")
+            hora_str = dt.strftime("%H:%M")
+            
+            lista_vuelos.append({
+                "id": v.getCodigo(),
+                "origen": v.getOrigen(),
+                "destino": v.getDestino(),
+                "fechaDiaSalida": dia_str,
+                "fechaHoraSalida": hora_str,
+                "asientosEco": v.getAsientosEco(),
+                "asientosPref": v.getAsientosPref()
+            })
+        self.__persistencia.guardarDatos("vuelos.txt", lista_vuelos)
         # Aquí también podrías guardar vuelos o reservas si los mantuviste en memoria
+    
+    def admin_agregar_vuelo(self, datos: Dict) -> Dict:
+        """
+        Agrega un vuelo a la lista en memoria self.__vuelos.
+        """
+        if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
+            return {"success": False, "message": "No autorizado"}
+
+        # Verificar si ya existe el código
+        for v in self.__vuelos:
+            if v.getCodigo() == datos["codigo"]:
+                return {"success": False, "message": "El código de vuelo ya existe."}
+
+        try:
+            # Construir datetime
+            fecha_str = f"{datos['dia']} {datos['hora']}"
+            fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M")
+            
+            nuevo_vuelo = Vuelo(
+                codigo=datos["codigo"],
+                origen=datos["origen"],
+                destino=datos["destino"],
+                fechaHoraSalida=fecha_dt,
+                asientosEco=int(datos["sillas_eco"]),
+                asientosPref=int(datos["sillas_pref"]),
+                precioBaseEco=235000.0,
+                precioBasePref=850000.0
+            )
+            # Agregar a memoria
+            self.__vuelos.append(nuevo_vuelo)
+            return {"success": True, "message": "Vuelo agregado correctamente (Memoria)"}
+            
+        except Exception as e:
+            return {"success": False, "message": f"Error en datos: {str(e)}"}
+    
+    def admin_modificar_vuelo(self, idVuelo: str, datos: Dict) -> Dict:
+        """
+        Modifica un vuelo existente en la lista en memoria.
+        """
+        if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
+            return {"success": False, "message": "No autorizado"}
+
+        vuelo_encontrado: Optional[Vuelo] = None
+        for v in self.__vuelos:
+            if v.getCodigo() == idVuelo:
+                vuelo_encontrado = v
+                break
+        
+        if not vuelo_encontrado:
+            return {"success": False, "message": "Vuelo no encontrado"}
+
+        # Nota: La clase Vuelo debería tener setters. Si no los tiene, 
+        # en Python podemos modificar los atributos privados con cuidado o (mejor) crear setters en Vuelo.py.
+        # Asumiendo acceso directo por simplicidad o que modificarás Vuelo.py para incluir setters:
+        try:
+            # Como los atributos son __privados en Vuelo.py, idealmente usarías setters.
+            # Aquí accedo "a la fuerza" usando name mangling de Python _Clase__atributo para no pedirte cambiar Vuelo.py,
+            # pero lo correcto es agregar métodos setOrigen, setDestino en Vuelo.py.
+            
+            if "origen" in datos:
+                vuelo_encontrado._Vuelo__origen = datos["origen"]
+            if "destino" in datos:
+                vuelo_encontrado._Vuelo__destino = datos["destino"]
+            
+            # Si cambian fecha/hora, hay que reconstruir el datetime
+            if "dia" in datos or "hora" in datos:
+                dt_actual = vuelo_encontrado.getFechaHoraSalida()
+                dia = datos.get("dia", dt_actual.strftime("%Y-%m-%d"))
+                hora = datos.get("hora", dt_actual.strftime("%H:%M"))
+                nuevo_dt = datetime.strptime(f"{dia} {hora}", "%Y-%m-%d %H:%M")
+                vuelo_encontrado._Vuelo__fechaHoraSalida = nuevo_dt
+
+            if "sillas_eco" in datos:
+                vuelo_encontrado._Vuelo__asientosEco = int(datos["sillas_eco"])
+            if "sillas_pref" in datos:
+                vuelo_encontrado._Vuelo__asientosPref = int(datos["sillas_pref"])
+
+            return {"success": True, "message": "Vuelo modificado en memoria"}
+        except Exception as e:
+            return {"success": False, "message": f"Error al modificar: {e}"}
 
     def obtenerVuelosIniciales(self) -> List[Dict]:
-        return self.__vuelos
+        """
+        Retorna la lista de vuelos convertida a diccionarios para el frontend.
+        """
+        resultado = []
+        for v in self.__vuelos:
+            resultado.append(self._vuelo_to_dict(v))
+        return resultado
 
     def buscarVuelos(self, filtros: Dict) -> List[Dict]:
         # (Lógica de búsqueda se mantiene igual...)
@@ -133,6 +264,19 @@ class API:
 
             resultado.append(v)
         return resultado
+    
+    def _vuelo_to_dict(self, v: Vuelo) -> Dict:
+        """Helper para convertir objeto Vuelo a Dict para el frontend"""
+        dt = v.getFechaHoraSalida()
+        return {
+            "id": v.getCodigo(),
+            "origen": v.getOrigen(),
+            "destino": v.getDestino(),
+            "fechaDiaSalida": dt.strftime("%Y-%m-%d"),
+            "fechaHoraSalida": dt.strftime("%H:%M"),
+            "asientosEco": v.getAsientosEco(),
+            "asientosPref": v.getAsientosPref()
+        }
 
 
     def login(self, doc: str, password: str) -> Dict:
@@ -193,18 +337,6 @@ class API:
         self.__clientes.append(nuevo_cliente)
 
         return {"success": True, "message": "Registro exitoso (Temporal en memoria)"}
-
-    # ... Resto de métodos (crearReserva, realizarCheckIn, adminGetReporte) se mantienen ...
-    
-    def adminGetReporte(self, filtros: Dict) -> Dict:
-        if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
-            return {"error": "No autorizado"}
-        admin: Administrador = self.__usuarioSesion 
-        ventas = admin.verSillasVendidas(filtros)
-        datos_pasajeros = []
-        if filtros.get("codigo_vuelo"):
-             datos_pasajeros = admin.verDatosPasajeros(filtros["codigo_vuelo"])
-        return {"ventas_por_vuelo": ventas, "pasajeros": datos_pasajeros}
 
     def crearReserva(self, idVuelo: str, pasajerosData: List) -> Dict:
         pass
