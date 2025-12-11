@@ -59,8 +59,31 @@ class API:
     def realizarCheckIn(self, idReserva: str, configEquipaje: Dict) -> Dict:
         pass
 
+    def _actualizarMillasCliente(self, cliente_obj: Cliente):
+        cli_keys = ["nombre", "correo", "num_doc", "password_hash", "millas"]
+        clientes = self.__gestor.cargarDatos("clientes.txt", cli_keys)
+        for c in clientes:
+            if c["num_doc"] == cliente_obj._numDoc:
+                c["millas"] = str(cliente_obj.getMillas())
+                break
+        self.__gestor.guardarDatos("clientes.txt", clientes)
+
     def adminGetReporte(self, filtros: Dict) -> Dict:
-        pass
+        if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
+            return {"error": "No autorizado"}
+        
+        admin: Administrador = self.__usuarioSesion 
+        
+        ventas = admin.verSillasVendidas(filtros)
+        
+        datos_pasajeros = []
+        if filtros.get("codigo_vuelo"):
+             datos_pasajeros = admin.verDatosPasajeros(filtros["codigo_vuelo"])
+
+        return {
+            "ventas_por_vuelo": ventas,
+            "pasajeros": datos_pasajeros
+        }
         
 
 def main():
