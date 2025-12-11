@@ -25,11 +25,24 @@ class API:
         self.__persistencia: Optional[IPersistencia] = None
 
     def iniciar(self) -> None:
-        pass
+        if not os.path.exists("database"):
+            os.makedirs("database")
+        print("Sistema iniciado y listo para usar :).")
 
     def login(self, doc: str, password: str) -> Dict:
-        pass
-
+        admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
+        for admin_data in admins:
+            user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
+            if user.getNumDoc() == doc and user.verifyPassword(password):
+                self.__usuarioSesion = user
+                return {"success": True, "user": {"nombre": user-_nombre, "tipo_usuario": "Administrador"}}
+        clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+        for cli_data in clientes:
+            user_temp = Cliente(cli_data["nombre"], cli_data["correo"], cli_data["num_doc"], cli_data["password_hash"], int(cli_data.get("millas", 0)))
+            if user_temp._passwordHash == password or user_temp.verificarPassword(password):
+                self.__usuarioSesion = user_temp
+                return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente, "millas": user_temp.getMillas()}}
+        return {"success": False, "message": "Credenciales inválidas."}
     def registro(self, datos: Dict) -> bool:
         pass
 
