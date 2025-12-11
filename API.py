@@ -1,3 +1,5 @@
+import random
+import string
 import webview
 import sys
 import os
@@ -569,8 +571,76 @@ class API:
 
         return {"success": True, "message": "Registro exitoso (Temporal en memoria)"}
 
-    def crearReserva(self, idVuelo: str, pasajerosData: List) -> Dict:
-        pass
+    def crearReserva(self, payload: Dict) -> Dict:
+        """
+        Crea una reserva real en memoria.
+        Recibe: { "vuelo_id": "...", "asientos": [...], "pasajeros": [...] }
+        """
+        try:
+            vuelo_id = payload.get("vuelo_id")
+            pasajeros_data = payload.get("pasajeros") # Lista con datos de personas
+            asientos_data = payload.get("asientos")   # Lista con info de asientos
+
+            # 1. Buscar Vuelo
+            vuelo = next((v for v in self.__vuelos if v.getCodigo() == vuelo_id), None)
+            if not vuelo:
+                return {"success": False, "message": "Vuelo no encontrado"}
+
+            # 2. Identificar Titular (Usamos el usuario logueado o el primer pasajero)
+            titular = self.__usuarioSesion
+            if not titular or not isinstance(titular, Cliente):
+                # Si no hay sesión o es admin, intentamos buscar si el primer pasajero ya es cliente
+                doc_primer_pax = pasajeros_data[0]["documento"]
+                titular = next((c for c in self.__clientes if c.getNumDoc() == doc_primer_pax), None)
+                
+                # Si aun así no existe, creamos un cliente "fantasma" temporal para que no falle el sistema
+                if not titular:
+                    titular = Cliente(pasajeros_data[0]["nombre"], pasajeros_data[0]["email"], pasajeros_data[0]["documento"], "temp123", 0, False)
+                    self.__clientes.append(titular) # Lo agregamos para que persista
+
+            # 3. Generar Código Reserva (6 caracteres alfanuméricos)
+            codigo_res = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            fecha_actual = datetime.now().strftime("%Y-%m-%d")
+
+            # 4. Crear la Reserva
+            nueva_reserva = Reserva(codigo_res, titular, vuelo, fecha_actual)
+
+            # 5. Crear y Asignar Pasajeros
+            for i, p_data in enumerate(pasajeros_data):
+                # Determinar asiento correspondiente
+                info_asiento = asientos_data[i]
+                es_vip = (info_asiento["tipo"] == "vip")
+                
+                # Crear objeto Asiento (Simulado para cumplir con la clase Pasajero)
+                # Precio 0 aquí porque ya se calculó en el front, solo nos importa el tipo
+                if es_vip:
+                    asiento_obj = AsientoPreferencial(info_asiento["id"], 0, "A", True, 0)
+                else:
+                    asiento_obj = AsientoEconomico(info_asiento["id"], 0, "A", True, 0)
+                
+                nuevo_pasajero = Pasajero(
+                    p_data["nombre"],
+                    p_data["documento"],
+                    p_data["email"],
+                    asiento_obj
+                )
+                
+                # Guardamos el pasajero dentro de la reserva
+                nueva_reserva.getPasajeros().append(nuevo_pasajero)
+
+            # 6. Guardar en la lista maestra de la API
+            self.__reservas.append(nueva_reserva)
+            print(f"Reserva creada exitosamente: {codigo_res} con {len(pasajeros_data)} pasajeros.")
+
+            return {
+                "success": True, 
+                "codigo": codigo_res, 
+                "message": "Reserva creada exitosamente"
+            }
+
+        except Exception as e:
+            print(f"Error creando reserva: {e}")
+            return {"success": False, "message": f"Error interno: {str(e)}"}
 
     def buscarReservaPorId(self, idReserva: str) -> Dict:
         # Nota: Asegúrate de tener cargadas las reservas en self.__reservas o leer el TXT aquí

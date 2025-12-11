@@ -220,6 +220,12 @@ export default {
       const reservaStr = localStorage.getItem('reservaActual')
       if (reservaStr) {
         this.reserva = JSON.parse(reservaStr)
+        // Usamos el código que nos devolvió Python (si existe), si no, generamos uno
+        if (this.reserva.codigo) {
+            this.codigoReserva = this.reserva.codigo
+        } else {
+            this.generarCodigoReserva() 
+        }
       }
     },
     // Generar código de reserva único
