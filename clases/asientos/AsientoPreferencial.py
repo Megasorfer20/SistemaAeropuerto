@@ -6,6 +6,7 @@ from clases.asientos.Asiento import Asiento
 
 class AsientoPreferencial(Asiento):
     def calcularPrecio(self, esPasajeroFrecuente: bool) -> float:
+        self._precioBase = 850000
         precio = self._precioBase
         if esPasajeroFrecuente:
             precio = 235000
