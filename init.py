@@ -37,28 +37,74 @@ class API:
         print("Sistema iniciado y listo para usar :).")
 
     def login(self, doc: str, password: str) -> Dict:
-        admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
-        for admin_data in admins:
-            user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
-            if user.getNumDoc() == doc and user.verifyPassword(password):
-                self.__usuarioSesion = user
-                return {"success": True, "user": {"nombre": user._nombre, "tipo_usuario": "Administrador"}}
-        clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
-        for cli_data in clientes:
-            user_temp = Cliente(cli_data["nombre"], cli_data["correo"], cli_data["num_doc"], cli_data["password_hash"], int(cli_data.get("millas", 0)))
-            if user_temp._passwordHash == password or user_temp.verificarPassword(password):
-                self.__usuarioSesion = user_temp
-                return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente", "millas": user_temp.getMillas()}}
-        return {"success": False, "message": "Credenciales inválidas."}
+    # 1. BUSCAR EN ADMINISTRADORES
+    admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
+    for admin_data in admins:
+        user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
+        # Asumiendo que Administrador tiene verifyPassword o verificarPassword (según tu clase Usuario)
+        if user.getNumDoc() == doc and user.verificarPassword(password): 
+            self.__usuarioSesion = user
+            return {"success": True, "user": {"nombre": user._nombre, "tipo_usuario": "Administrador"}}
+            
+    # 2. BUSCAR EN CLIENTES
+    clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+    for cli_data in clientes:
+        user_temp = Cliente(cli_data["nombre"], cli_data["correo"], cli_data["num_doc"], cli_data["password_hash"], int(cli_data.get("millas", 0)))
+        if user_temp.verificarPassword(password): # Usar el método estándar de la clase
+            self.__usuarioSesion = user_temp
+            return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente", "millas": user_temp.getMillas()}}
+            
+    # 3. NO SE ENCONTRÓ
+    return {"success": False, "message": "Credenciales inválidas."}
 
     def registro(self, datos: Dict) -> bool:
-        pass
+        clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+        
+        for c in clientes:
+            if c["num_doc"] == datos["numDoc"]:
+                return {"success": False, "message": "El usuario ya existe"}
+
+        nuevo_cliente = Cliente(datos["nombre"], datos["correo"], datos["numDoc"], datos["password"])
+        
+        nuevo_dict = {
+            "nombre": datos["nombre"],
+            "correo": datos["correo"],
+            "num_doc": datos["numDoc"],
+            "password_hash": nuevo_cliente._passwordHash,
+            "millas": 0
+        }
+        
+        clientes.append(nuevo_dict)
+        if self.__gestor.guardarDatos("clientes.txt", clientes):
+            return {"success": True, "message": "Registro exitoso"}
+        return {"success": False, "message": "Error al guardar"}
 
     def buscarVuelos(self, filtros: Dict) -> List[Vuelo]:
-        pass
+        keys = ["codigo", "origen", "destino", "dia", "hora", "sillas_pref", "sillas_eco"]
+        vuelos = self.__gestor.cargarDatos("vuelos.txt", keys)
+        resultado = []
+
+        origen_b = filtros.get("origen", "").lower()
+        destino_b = filtros.get("destino", "").lower()
+
+        for v in vuelos:
+            match_origen = not origen_b or origen_b in v["origen"].lower()
+            match_destino = not destino_b or destino_b in v["destino"].lower()
+
+            if match_origen and match_destino:
+                v["sillas_pref"] = int(v["sillas_pref"])
+                v["sillas_eco"] = int(v["sillas_eco"])
+                resultado.append(v)
+        
+        return resultado
 
     def obtenerDetalleVuelo(self, idVuelo: str) -> Dict:
-        pass
+        keys = ["codigo", "origen", "destino", "dia", "hora", "sillas_pref", "sillas_eco"]
+        vuelos = self.__gestor.cargarDatos("vuelos.txt", keys)
+        for v in vuelos:
+            if v["codigo"] == idVuelo:
+                return v
+        return {}
 
     def crearReserva(self, idVuelo: str, pasajerosData: List) -> Dict:
         pass
