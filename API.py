@@ -70,16 +70,86 @@ class API:
         return datetime.now()
 
     def iniciar(self) -> None:
-        # --- CARGAR ADMINISTRADORES ---
-        self.__reservas = []
+        # 1. CARGAR ADMINISTRADORES (Faltaba esto)
+        admins_data = self.__persistencia.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
+        self.__administradores = []
+        for admin in admins_data:
+            if admin.get("nombre"): # Validación simple para no cargar vacíos
+                obj_admin = Administrador(
+                    admin["nombre"], 
+                    admin["correo"], 
+                    admin["num_doc"], 
+                    admin["password_hash"], 
+                    es_hash=True
+                )
+                self.__administradores.append(obj_admin)
+
+        # 2. CARGAR CLIENTES (Faltaba esto)
+        clientes_data = self.__persistencia.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+        self.__clientes = []
+        for cli in clientes_data:
+            if cli.get("nombre"):
+                try:
+                    millas = int(cli.get("millas", 0) if cli.get("millas") else 0)
+                except:
+                    millas = 0
+                    
+                obj_cliente = Cliente(
+                    cli["nombre"], 
+                    cli["correo"], 
+                    cli["num_doc"], 
+                    cli["password_hash"], 
+                    miles=millas,
+                    es_hash=True
+                )
+                self.__clientes.append(obj_cliente)
+
+        # 3. CARGAR VUELOS
+        # Aquí estaba el error principal: cargabas los datos pero no creabas los objetos
+        vuelos_data = self.__persistencia.cargarDatos("vuelos.txt", [
+            "id",
+            "origen",
+            "destino", 
+            "fechaDiaSalida", 
+            "fechaHoraSalida",
+            "asientosPref",
+            "asientosEco"
+        ])
+        
+        self.__vuelos = [] # Reiniciar lista
+        for v in vuelos_data:
+            if v.get("id"): # Validar que tenga ID
+                try:
+                    # Parsear fecha
+                    fecha_dt = self._obtener_fecha_desde_str(v["fechaDiaSalida"], v["fechaHoraSalida"])
+                    
+                    # Convertir strings a int (con fallback a 0 si falla)
+                    sillas_eco = int(v["asientosEco"]) if v["asientosEco"] else 0
+                    sillas_pref = int(v["asientosPref"]) if v["asientosPref"] else 0
+
+                    nuevo_vuelo = Vuelo(
+                        codigo=v["id"],
+                        origen=v["origen"],
+                        destino=v["destino"],
+                        fechaHoraSalida=fecha_dt,
+                        asientosEco=sillas_eco,
+                        asientosPref=sillas_pref,
+                        precioBaseEco=235000.0,
+                        precioBasePref=850000.0
+                    )
+                    self.__vuelos.append(nuevo_vuelo)
+                except Exception as e:
+                    print(f"Error procesando vuelo {v.get('id')}: {e}")
+
+        # 4. CARGAR RESERVAS
         reservas_data = self.__persistencia.cargarDatos("reservas.txt", ["codigo_reserva", "codigo_vuelo", "doc_titular", "fecha", "checkin", "pasajeros_raw"])
+        self.__reservas = []
         
         for r_data in reservas_data:
+            if not r_data.get("codigo_reserva"): continue
+            
             try:
-                # 1. Buscar Objeto Vuelo
                 vuelo_obj = next((v for v in self.__vuelos if v.getCodigo() == r_data["codigo_vuelo"]), None)
-                
-                # 2. Buscar Objeto Cliente (Titular)
                 titular_obj = next((c for c in self.__clientes if c.getNumDoc() == r_data["doc_titular"]), None)
                 
                 if vuelo_obj and titular_obj:
@@ -90,32 +160,29 @@ class API:
                         fechaReserva=r_data["fecha"]
                     )
                     
-                    # Restaurar estado del Check-In
                     if r_data.get("checkin") == "True":
                         nueva_reserva.setCheckInRealizado(True)
                     
-                    # Reconstruir Pasajeros (Esto es complejo desde TXT plano, 
-                    # asumiremos que parseamos 'pasajeros_raw' que guardaremos como string separado por | o similar)
-                    # Para este ejercicio, reconstruimos la lista vacía o básica si es necesario.
-                    # En un caso real, guardaríamos JSON en el TXT o un archivo detalle_reserva.txt
-                    
-                    # Simulación de parsing de pasajeros guardados: "Juan,123,ECO|Maria,456,ECO"
                     raw_pax = r_data.get("pasajeros_raw", "")
                     if raw_pax:
                         lista_pax = raw_pax.split("|")
                         for p_str in lista_pax:
                             if p_str:
-                                # formato: nombre;doc;asiento_tipo
                                 datos_p = p_str.split(";") 
                                 if len(datos_p) >= 3:
-                                    # Creamos asiento dummy para tener el tipo
-                                    asiento_obj = AsientoEconomico("X",0,"X",False,0) if datos_p[2] == "ECO" else AsientoPreferencial("X",0,"X",False,0)
+                                    # Determinar tipo de asiento dummy para lógica de equipaje
+                                    es_eco = (datos_p[2] == "ECO")
+                                    # Precio 0 porque ya está reservado
+                                    asiento_obj = AsientoEconomico("X",0,"X",False,0) if es_eco else AsientoPreferencial("X",0,"X",False,0)
+                                    
                                     pax = Pasajero(datos_p[0], datos_p[1], "email@dummy.com", asiento_obj)
                                     nueva_reserva.getPasajeros().append(pax)
 
                     self.__reservas.append(nueva_reserva)
             except Exception as e:
                 print(f"Error cargando reserva {r_data.get('codigo_reserva')}: {e}")
+        
+        print(f"SISTEMA INICIADO: {len(self.__administradores)} Admins, {len(self.__clientes)} Clientes, {len(self.__vuelos)} Vuelos.")
 
     def buscarReservaPorId(self, idReserva: str) -> Dict:
         # Buscar en memoria
@@ -261,19 +328,16 @@ class API:
         # Convertimos objetos Vuelo -> Diccionarios formato TXT
         lista_vuelos = []
         for v in self.__vuelos:
-            # Separamos datetime en Dia y Hora
             dt = v.getFechaHoraSalida()
-            dia_str = dt.strftime("%Y-%m-%d")
-            hora_str = dt.strftime("%H:%M")
-            
             lista_vuelos.append({
                 "id": v.getCodigo(),
                 "origen": v.getOrigen(),
                 "destino": v.getDestino(),
-                "fechaDiaSalida": dia_str,
-                "fechaHoraSalida": hora_str,
-                "asientosEco": v.getAsientosEco(),
-                "asientosPref": v.getAsientosPref()
+                "fechaDiaSalida": dt.strftime("%Y-%m-%d"),
+                "fechaHoraSalida": dt.strftime("%H:%M"),
+                # OJO AL ORDEN AQUÍ TAMBIÉN:
+                "asientosPref": v.getAsientosPref(),
+                "asientosEco": v.getAsientosEco()
             })
         self.__persistencia.guardarDatos("vuelos.txt", lista_vuelos)
         # Aquí también podrías guardar vuelos o reservas si los mantuviste en memoria
