@@ -111,9 +111,8 @@
         <!-- Botones de acción -->
         <div class="action-buttons card fade-in" style="animation-delay: 0.3s">
           <button
-            @click="reservarVuelo"
-            class="btn btn-primary btn-large"
-            :disabled="!usuarioActual"
+                  @click="reservarVuelo(vuelo.id)"
+                  class="btn btn-primary"
           >
             {{ usuarioActual ? 'Continuar con la Reserva' : 'Inicia Sesión para Reservar' }}
           </button>
