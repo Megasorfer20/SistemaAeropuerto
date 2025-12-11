@@ -20,19 +20,19 @@
         <div class="flight-info-bar card fade-in">
           <div class="flight-info-item">
             <span class="info-label">Vuelo</span>
-            <span class="info-value">{{ vuelo.numeroVuelo }}</span>
+            <span class="info-value">{{ vuelo.id }}</span>
           </div>
           <div class="flight-info-item">
             <span class="info-label">Ruta</span>
             <span class="info-value">{{ vuelo.origen }} → {{ vuelo.destino }}</span>
           </div>
           <div class="flight-info-item">
-            <span class="info-label">Fecha</span>
-            <span class="info-value">{{ formatearFecha(vuelo.fechaSalida) }}</span>
+            <span class="info-label">Salida</span>
+            <span class="info-value">{{ vuelo.fechaDiaSalida }} - {{ vuelo.fechaHoraSalida }}</span>
           </div>
           <div class="flight-info-item">
-            <span class="info-label">Asientos Seleccionados</span>
-            <span class="info-value info-highlight">{{ asientosSeleccionados.length }}</span>
+            <span class="info-label">Seleccionados</span>
+            <span class="info-value info-highlight">{{ asientosSeleccionados.length }} / 3</span>
           </div>
         </div>
 
@@ -41,6 +41,9 @@
           <div class="seat-map-section card fade-in" style="animation-delay: 0.1s">
             <div class="seat-map-header">
               <h2 class="section-title">Selecciona tus Asientos</h2>
+              <p style="font-size: 0.9em; color: #666; margin-top: -10px; margin-bottom: 20px">
+                Puedes seleccionar máximo 3 asientos.
+              </p>
 
               <!-- Leyenda de colores -->
               <div class="seat-legend">
@@ -68,8 +71,8 @@
                     fill="currentColor"
                   />
                 </svg>
-                <h3>Clase VIP</h3>
-                <span class="cabin-price">+${{ configAsientos.vip.precio }}</span>
+                <h3>Clase Preferencial</h3>
+                <span class="cabin-price">${{ formatPrice(PRECIO_VIP) }}</span>
               </div>
 
               <div class="seats-grid">
@@ -83,7 +86,7 @@
                     { 'seat-selected': estaSeleccionado(asiento.id) },
                   ]"
                   @click="toggleAsiento(asiento)"
-                  :disabled="asiento.ocupado"
+                  :title="asiento.ocupado ? 'Ocupado' : asiento.numero"
                 >
                   {{ asiento.numero }}
                 </div>
@@ -102,8 +105,8 @@
                     fill="currentColor"
                   />
                 </svg>
-                <h3>Clase Normal</h3>
-                <span class="cabin-price">Incluido</span>
+                <h3>Clase Económica</h3>
+                <span class="cabin-price">${{ formatPrice(PRECIO_ECO) }}</span>
               </div>
 
               <div class="seats-grid">
@@ -117,7 +120,7 @@
                     { 'seat-selected': estaSeleccionado(asiento.id) },
                   ]"
                   @click="toggleAsiento(asiento)"
-                  :disabled="asiento.ocupado"
+                  :title="asiento.ocupado ? 'Ocupado' : asiento.numero"
                 >
                   {{ asiento.numero }}
                 </div>
@@ -145,7 +148,7 @@
                         asiento.tipo === 'vip' ? 'seat-type-vip' : 'seat-type-normal',
                       ]"
                     >
-                      {{ asiento.tipo === 'vip' ? 'VIP' : 'Normal' }}
+                      {{ asiento.tipo === 'vip' ? 'Pref' : 'Eco' }}
                     </span>
                   </div>
                   <button @click="removerAsiento(asiento)" class="remove-btn">
@@ -172,21 +175,17 @@
               <!-- Desglose de precios -->
               <div class="price-breakdown">
                 <div class="price-item">
-                  <span>Precio base</span>
-                  <span>${{ vuelo.precio.toFixed(2) }}</span>
+                  <span>Asientos Preferenciales ({{ contarAsientosVIP() }})</span>
+                  <span>${{ formatPrice(calcularPrecioVIP()) }}</span>
                 </div>
                 <div class="price-item">
-                  <span>Asientos VIP ({{ contarAsientosVIP() }})</span>
-                  <span>${{ calcularPrecioVIP().toFixed(2) }}</span>
-                </div>
-                <div class="price-item">
-                  <span>Asientos Normales ({{ contarAsientosNormales() }})</span>
-                  <span>${{ calcularPrecioNormales().toFixed(2) }}</span>
+                  <span>Asientos Económicos ({{ contarAsientosNormales() }})</span>
+                  <span>${{ formatPrice(calcularPrecioNormales()) }}</span>
                 </div>
                 <div class="price-divider"></div>
                 <div class="price-item price-total">
                   <span>Total</span>
-                  <span>${{ calcularTotal().toFixed(2) }}</span>
+                  <span>${{ formatPrice(calcularTotal()) }}</span>
                 </div>
               </div>
 
@@ -196,7 +195,7 @@
                 class="btn btn-primary btn-large"
                 :disabled="asientosSeleccionados.length === 0"
               >
-                Continuar con la Reserva
+                Continuar
               </button>
             </div>
           </div>
@@ -204,7 +203,7 @@
       </div>
 
       <div v-else class="loading-card card">
-        <p>Cargando información del vuelo...</p>
+        <p>{{ mensajeCarga }}</p>
       </div>
     </div>
   </div>
@@ -212,8 +211,6 @@
 
 <script>
 import NavBar from '../components/NavBar.vue'
-import vuelosData from '../data/vuelos.json'
-import configAsientosData from '../data/asientos.json'
 
 export default {
   name: 'SeatSelectionView',
@@ -222,138 +219,160 @@ export default {
   },
   data() {
     return {
-      // Vuelo actual
       vuelo: null,
-      // Configuración de asientos desde JSON
-      configAsientos: configAsientosData,
-      // Asientos generados dinámicamente
       asientosVIP: [],
       asientosNormales: [],
-      // Asientos seleccionados por el usuario
       asientosSeleccionados: [],
+      mensajeCarga: 'Cargando mapa de asientos...',
+
+      // PRECIOS FIJOS SEGÚN REQUERIMIENTOS
+      PRECIO_VIP: 850000,
+      PRECIO_ECO: 235000,
+      MAX_SILLAS: 3, // Requerimiento #4
     }
   },
   mounted() {
-    // Cargar datos al montar
-    this.cargarVuelo()
-    this.generarAsientos()
+    if (window.pywebview) {
+      this.cargarVueloBackend()
+    } else {
+      window.addEventListener('pywebviewready', () => {
+        this.cargarVueloBackend()
+      })
+    }
   },
   methods: {
-    // Cargar información del vuelo
-    cargarVuelo() {
-      const vueloId = parseInt(this.$route.params.id)
-      this.vuelo = vuelosData.find((v) => v.id === vueloId)
+    cargarVueloBackend() {
+      const vueloId = this.$route.params.id
+
+      // Usamos buscarVuelos con el filtro ID para obtener la info
+      window.pywebview.api
+        .buscarVuelos({ id: vueloId })
+        .then((response) => {
+          if (response && response.length > 0) {
+            this.vuelo = response[0]
+            this.generarAsientos()
+          } else {
+            this.mensajeCarga = 'Vuelo no encontrado.'
+          }
+        })
+        .catch((err) => {
+          console.error(err)
+          this.mensajeCarga = 'Error de conexión.'
+        })
     },
-    // Generar asientos dinámicamente según configuración
+
     generarAsientos() {
+      // Obtenemos capacidades desde el TXT (convertir a int)
+      const capVip = parseInt(this.vuelo.asientosPref)
+      const capEco = parseInt(this.vuelo.asientosEco)
+
+      const asientosPorFila = 6 // Estándar tipo A320
       const letras = ['A', 'B', 'C', 'D', 'E', 'F']
 
-      // Generar asientos VIP
-      const filasVIP = this.configAsientos.vip.filas
-      const asientosPorFilaVIP = this.configAsientos.vip.asientosPorFila
+      // --- GENERAR VIP ---
+      // Calculamos filas necesarias basado en capacidad total
+      const filasVIP = Math.ceil(capVip / asientosPorFila)
 
       for (let fila = 1; fila <= filasVIP; fila++) {
-        for (let i = 0; i < asientosPorFilaVIP; i++) {
+        for (let i = 0; i < asientosPorFila; i++) {
+          // No crear más asientos que la capacidad real
+          if (this.asientosVIP.length >= capVip) break
+
           this.asientosVIP.push({
             id: `VIP-${fila}${letras[i]}`,
             numero: `${fila}${letras[i]}`,
-            fila: fila,
-            letra: letras[i],
             tipo: 'vip',
-            precio: this.configAsientos.vip.precio,
-            // Simular algunos asientos ocupados aleatoriamente
+            precio: this.PRECIO_VIP,
+            // Simulamos ocupación aleatoria (esto debería venir del backend de reservas en una fase avanzada)
+            ocupado: Math.random() < 0.2,
+          })
+        }
+      }
+
+      // --- GENERAR ECO ---
+      const filasEco = Math.ceil(capEco / asientosPorFila)
+      const filaInicioEco = filasVIP + 1
+
+      for (let fila = filaInicioEco; fila < filaInicioEco + filasEco; fila++) {
+        for (let i = 0; i < asientosPorFila; i++) {
+          if (this.asientosNormales.length >= capEco) break
+
+          this.asientosNormales.push({
+            id: `ECO-${fila}${letras[i]}`,
+            numero: `${fila}${letras[i]}`,
+            tipo: 'normal', // Equivale a economica
+            precio: this.PRECIO_ECO,
             ocupado: Math.random() < 0.3,
           })
         }
       }
-
-      // Generar asientos normales
-      const filasNormales = this.configAsientos.normal.filas
-      const asientosPorFilaNormal = this.configAsientos.normal.asientosPorFila
-      const filaInicio = filasVIP + 1
-
-      for (let fila = filaInicio; fila < filaInicio + filasNormales; fila++) {
-        for (let i = 0; i < asientosPorFilaNormal; i++) {
-          this.asientosNormales.push({
-            id: `NORMAL-${fila}${letras[i]}`,
-            numero: `${fila}${letras[i]}`,
-            fila: fila,
-            letra: letras[i],
-            tipo: 'normal',
-            precio: this.configAsientos.normal.precio,
-            // Simular algunos asientos ocupados aleatoriamente
-            ocupado: Math.random() < 0.4,
-          })
-        }
-      }
     },
-    // Verificar si un asiento está seleccionado
+
     estaSeleccionado(asientoId) {
       return this.asientosSeleccionados.some((a) => a.id === asientoId)
     },
-    // Alternar selección de asiento
+
     toggleAsiento(asiento) {
       if (asiento.ocupado) return
 
       const index = this.asientosSeleccionados.findIndex((a) => a.id === asiento.id)
 
       if (index !== -1) {
-        // Remover asiento si ya está seleccionado
+        // Deseleccionar
         this.asientosSeleccionados.splice(index, 1)
       } else {
-        // Agregar asiento a la selección
+        // Seleccionar (Validar máximo 3)
+        if (this.asientosSeleccionados.length >= this.MAX_SILLAS) {
+          alert(`Solo puedes seleccionar un máximo de ${this.MAX_SILLAS} sillas.`)
+          return
+        }
         this.asientosSeleccionados.push(asiento)
       }
     },
-    // Remover un asiento específico
+
     removerAsiento(asiento) {
       const index = this.asientosSeleccionados.findIndex((a) => a.id === asiento.id)
       if (index !== -1) {
         this.asientosSeleccionados.splice(index, 1)
       }
     },
-    // Contar asientos VIP seleccionados
+
     contarAsientosVIP() {
       return this.asientosSeleccionados.filter((a) => a.tipo === 'vip').length
     },
-    // Contar asientos normales seleccionados
+
     contarAsientosNormales() {
       return this.asientosSeleccionados.filter((a) => a.tipo === 'normal').length
     },
-    // Calcular precio de asientos VIP
+
     calcularPrecioVIP() {
-      return this.contarAsientosVIP() * this.configAsientos.vip.precio
+      return this.contarAsientosVIP() * this.PRECIO_VIP
     },
-    // Calcular precio de asientos normales
+
     calcularPrecioNormales() {
-      return this.contarAsientosNormales() * this.vuelo.precio
+      return this.contarAsientosNormales() * this.PRECIO_ECO
     },
-    // Calcular precio total
+
     calcularTotal() {
       return this.calcularPrecioVIP() + this.calcularPrecioNormales()
     },
-    // Formatear fecha
-    formatearFecha(fecha) {
-      const date = new Date(fecha + 'T00:00:00')
-      return date.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
+
+    // Helper para formato moneda
+    formatPrice(value) {
+      return value.toLocaleString('es-CO')
     },
-    // Volver atrás
+
     volver() {
       this.$router.go(-1)
     },
-    // Continuar con la reserva
+
     continuarReserva() {
       if (this.asientosSeleccionados.length === 0) return
 
-      // Guardar asientos seleccionados en localStorage para la siguiente vista
+      // Guardamos en localStorage para persistir entre vistas
       localStorage.setItem('asientosSeleccionados', JSON.stringify(this.asientosSeleccionados))
       localStorage.setItem('vueloReserva', JSON.stringify(this.vuelo))
 
-      // Navegar a la página de información de pasajeros
       this.$router.push(`/pasajeros/${this.vuelo.id}`)
     },
   },
@@ -361,375 +380,5 @@ export default {
 </script>
 
 <style scoped>
-.seat-selection-view {
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.seat-container {
-  padding: 40px 20px;
-}
-
-.btn-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  color: var(--text-dark);
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-bottom: 24px;
-  transition: color 0.3s ease;
-}
-
-.btn-back:hover {
-  color: var(--primary-red);
-}
-
-.btn-back svg {
-  width: 20px;
-  height: 20px;
-}
-
-.seat-content {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* Flight Info Bar */
-.flight-info-bar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 24px;
-  padding: 24px;
-  margin-bottom: 24px;
-}
-
-.flight-info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-label {
-  font-size: 12px;
-  color: var(--text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.info-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-dark);
-}
-
-.info-highlight {
-  color: var(--primary-red);
-}
-
-/* Seat Layout */
-.seat-layout-container {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 24px;
-}
-
-.seat-map-section {
-  padding: 32px;
-}
-
-.seat-map-header {
-  margin-bottom: 32px;
-}
-
-.section-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 16px;
-}
-
-/* Legend */
-.seat-legend {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--text-dark);
-}
-
-.legend-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 2px solid var(--border-gray);
-}
-
-/* Cabin Sections */
-.cabin-section {
-  margin-bottom: 32px;
-}
-
-.cabin-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-gray);
-}
-
-.cabin-header svg {
-  width: 24px;
-  height: 24px;
-  color: var(--primary-red);
-}
-
-.cabin-header h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-dark);
-  flex: 1;
-}
-
-.cabin-price {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--primary-red);
-}
-
-.cabin-divider {
-  height: 2px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--border-gray) 20%,
-    var(--border-gray) 80%,
-    transparent
-  );
-  margin: 32px 0;
-}
-
-/* Seats Grid */
-.seats-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-  max-width: 600px;
-}
-
-.seat-button {
-  aspect-ratio: 1;
-  border: 2px solid var(--border-gray);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.seat-available {
-  background-color: var(--white);
-  color: var(--text-dark);
-  border-color: var(--border-gray);
-}
-
-.seat-available:hover {
-  background-color: var(--light-gray);
-  border-color: var(--primary-red);
-  transform: scale(1.05);
-}
-
-.seat-occupied {
-  background-color: #f3f4f6;
-  color: #9ca3af;
-  border-color: #d1d5db;
-  cursor: not-allowed;
-}
-
-.seat-selected {
-  background-color: var(--primary-red);
-  color: var(--white);
-  border-color: var(--primary-red);
-  transform: scale(1.05);
-}
-
-/* Summary Section */
-.summary-section {
-  position: sticky;
-  top: 20px;
-  height: fit-content;
-}
-
-.summary-card {
-  padding: 24px;
-}
-
-.summary-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 20px;
-}
-
-.selected-seats-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.selected-seat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background-color: var(--light-gray);
-  border-radius: 8px;
-}
-
-.seat-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.seat-number {
-  font-weight: 700;
-  color: var(--text-dark);
-  font-size: 16px;
-}
-
-.seat-type {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.seat-type-vip {
-  background-color: #fee2e2;
-  color: var(--primary-red);
-}
-
-.seat-type-normal {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.remove-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: none;
-  border: none;
-  color: var(--text-light);
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.remove-btn:hover {
-  color: var(--primary-red);
-}
-
-.remove-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-.no-seats-selected {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-light);
-}
-
-.no-seats-selected svg {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
-  opacity: 0.5;
-}
-
-.no-seats-selected p {
-  font-size: 14px;
-}
-
-/* Price Breakdown */
-.price-breakdown {
-  margin-bottom: 20px;
-}
-
-.price-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  font-size: 14px;
-  color: var(--text-dark);
-}
-
-.price-divider {
-  height: 1px;
-  background-color: var(--border-gray);
-  margin: 8px 0;
-}
-
-.price-total {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--primary-red);
-}
-
-.btn-large {
-  width: 100%;
-  padding: 14px 24px;
-  font-size: 16px;
-}
-
-.loading-card {
-  padding: 60px;
-  text-align: center;
-  color: var(--text-light);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .seat-layout-container {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-section {
-    position: static;
-  }
-}
-
-@media (max-width: 640px) {
-  .seats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .seat-button {
-    font-size: 12px;
-  }
-
-  .flight-info-bar {
-    grid-template-columns: 1fr 1fr;
-  }
-}
+@import '../assets/styles/SeatSelection.css';
 </style>

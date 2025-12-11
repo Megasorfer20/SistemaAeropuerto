@@ -22,56 +22,36 @@ from clases.GestorTxt import GestorTxt
 from API import API
 
 def main():
+    # Instanciamos la API fuera del try para que sea accesible en el finally
+    api = API()
+    
     try:
-        # Pruebas en consola
-        
-        prueba = API()
-        
-        asiento1 = AsientoPreferencial(
-        id="A1",
-        fila=10,
-        columna="C",
-        esVentana=True,
-        precioBase=0     # Este valor luego es reemplazado en calcularPrecio
-        )
+        # Pruebas en consola (Opcional)
+        asiento1 = AsientoPreferencial(id="A1", fila=10, columna="C", esVentana=True, precioBase=0)
         asiento1._seleccionManual = False
-        print(asiento1.calcularPrecio(False))
+        # print(asiento1.calcularPrecio(False))
         
-        
-        
-        
-        
-        
-        
-        
-        
-        ## ESTO ES LO QUE SE VA A PRESENTAR A LA PROFESORA MAÑANA
-        
-        dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
-        index_file = os.path.join(dist_dir, 'index.html')
-
-        # if not os.path.exists(index_file):
-        #     raise FileNotFoundError("¡Asegúrate de haber ejecutado 'npm run build' en Vue!")
-        
-        api = API()
+        # INICIO DEL SISTEMA
+        # Carga los datos de los txt a las listas en memoria (__clientes, __administradores)
         api.iniciar()
-        
 
-        # webview.create_window('Gestor de pacientes', index_file, js_api=api)
-        webview.create_window("Dev", "http://localhost:5173", js_api=api)
+        ## CONFIGURACIÓN DE LA INTERFAZ
+        dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
+        # index_file = os.path.join(dist_dir, 'index.html') 
+        
+        # Para desarrollo suele usarse localhost, para prod index_file
+        webview.create_window("Sistema de Reservas", "http://localhost:5173", js_api=api)
         
         webview.start(debug=True, http_server=True)
-        # webview.start( http_server=True)
+
     finally:
-        ## PRUEBAS EN CONSOLA
-        
-        
-        
-        
-        
-        ## ESTO ES LO QUE SE VA A PRESENTAR A LA PROFESORA MAÑANA
-        # Cerrar la aplicación
-        print("Cerrando la aplicación...")
+        ## 1. GUARDADO DE DATOS AL CERRAR
+        # Aquí se cumple el requerimiento: guardar solo al cerrar la ventana
+        if api:
+            print("\n--- Ejecutando cierre del sistema ---")
+            api.guardar_datos_cierre()
+            
+        print("Aplicación cerrada correctamente.")
 
 if __name__ == "__main__":
     main()
