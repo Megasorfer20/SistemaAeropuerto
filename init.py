@@ -37,25 +37,26 @@ class API:
         print("Sistema iniciado y listo para usar :).")
 
     def login(self, doc: str, password: str) -> Dict:
-    # 1. BUSCAR EN ADMINISTRADORES
-    admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
-    for admin_data in admins:
-        user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
-        # Asumiendo que Administrador tiene verifyPassword o verificarPassword (según tu clase Usuario)
-        if user.getNumDoc() == doc and user.verificarPassword(password): 
-            self.__usuarioSesion = user
-            return {"success": True, "user": {"nombre": user._nombre, "tipo_usuario": "Administrador"}}
-            
-    # 2. BUSCAR EN CLIENTES
-    clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
-    for cli_data in clientes:
-        user_temp = Cliente(cli_data["nombre"], cli_data["correo"], cli_data["num_doc"], cli_data["password_hash"], int(cli_data.get("millas", 0)))
-        if user_temp.verificarPassword(password): # Usar el método estándar de la clase
-            self.__usuarioSesion = user_temp
-            return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente", "millas": user_temp.getMillas()}}
-            
-    # 3. NO SE ENCONTRÓ
-    return {"success": False, "message": "Credenciales inválidas."}
+            # 1. BUSCAR EN ADMINISTRADORES
+        admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
+        for admin_data in admins:
+            user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
+            # Asumiendo que Administrador tiene verifyPassword o verificarPassword (según tu clase Usuario)
+            if user.getNumDoc() == doc and user.verificarPassword(password): 
+                self.__usuarioSesion = user
+                return {"success": True, "user": {"nombre": user._nombre, "tipo_usuario": "Administrador"}}
+                
+        # 2. BUSCAR EN CLIENTES
+        clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+        for cli_data in clientes:
+            user_temp = Cliente(cli_data["nombre"], cli_data["correo"], cli_data["num_doc"], cli_data["password_hash"], int(cli_data.get("millas", 0)))
+            if user_temp.verificarPassword(password): # Usar el método estándar de la clase
+                self.__usuarioSesion = user_temp
+                return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente", "millas": user_temp.getMillas()}}
+                
+        # 3. NO SE ENCONTRÓ
+        return {"success": False, "message": "Credenciales inválidas."}                                     
+    
 
     def registro(self, datos: Dict) -> bool:
         clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
