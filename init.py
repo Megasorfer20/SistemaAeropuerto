@@ -10,6 +10,7 @@ from datetime import datetime, date
 from clases.asientos.Asiento import Asiento
 from clases.equipajes.Equipaje import Equipaje
 from clases.usuarios.Cliente import Cliente
+from clases.usuarios.Administrador import Administrador
 from clases.vuelos.Vuelo import Vuelo
 from clases.vuelos.Pasajero import Pasajero
 from clases.usuarios.Usuario import Usuario
@@ -29,9 +30,24 @@ class API:
         self.__vuelos = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
         
         pass
+        if not os.path.exists("database"):
+            os.makedirs("database")
+        print("Sistema iniciado y listo para usar :).")
 
     def login(self, doc: str, password: str) -> Dict:
-        pass
+        admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
+        for admin_data in admins:
+            user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
+            if user.getNumDoc() == doc and user.verifyPassword(password):
+                self.__usuarioSesion = user
+                return {"success": True, "user": {"nombre": user._nombre, "tipo_usuario": "Administrador"}}
+        clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+        for cli_data in clientes:
+            user_temp = Cliente(cli_data["nombre"], cli_data["correo"], cli_data["num_doc"], cli_data["password_hash"], int(cli_data.get("millas", 0)))
+            if user_temp._passwordHash == password or user_temp.verificarPassword(password):
+                self.__usuarioSesion = user_temp
+                return {"success": True, "user": {"nombre": user_temp._nombre, "tipo_usuario": "Cliente", "millas": user_temp.getMillas()}}
+        return {"success": False, "message": "Credenciales inválidas."}
 
     def registro(self, datos: Dict) -> bool:
         pass
@@ -48,8 +64,31 @@ class API:
     def realizarCheckIn(self, idReserva: str, configEquipaje: Dict) -> Dict:
         pass
 
+    def _actualizarMillasCliente(self, cliente_obj: Cliente):
+        cli_keys = ["nombre", "correo", "num_doc", "password_hash", "millas"]
+        clientes = self.__gestor.cargarDatos("clientes.txt", cli_keys)
+        for c in clientes:
+            if c["num_doc"] == cliente_obj._numDoc:
+                c["millas"] = str(cliente_obj.getMillas())
+                break
+        self.__gestor.guardarDatos("clientes.txt", clientes)
+
     def adminGetReporte(self, filtros: Dict) -> Dict:
-        pass
+        if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
+            return {"error": "No autorizado"}
+        
+        admin: Administrador = self.__usuarioSesion 
+        
+        ventas = admin.verSillasVendidas(filtros)
+        
+        datos_pasajeros = []
+        if filtros.get("codigo_vuelo"):
+             datos_pasajeros = admin.verDatosPasajeros(filtros["codigo_vuelo"])
+
+        return {
+            "ventas_por_vuelo": ventas,
+            "pasajeros": datos_pasajeros
+        }
         
 
 def main():
