@@ -15,6 +15,7 @@ from clases.vuelos.Pasajero import Pasajero
 from clases.usuarios.Usuario import Usuario
 from clases.vuelos.Reserva import Reserva
 from clases.IPersistencia import IPersistencia
+from clases.GestorTxt import GestorTxt
 
 class API:
     def __init__(self):
@@ -22,9 +23,13 @@ class API:
         self.__vuelos: List[Vuelo] = []
         self.__usuariosRegistrados: List[Usuario] = []
         self.__reservas: List[Reserva] = []
-        self.__persistencia: Optional[IPersistencia] = None
+        self.__persistencia: Optional[IPersistencia] = GestorTxt()
 
     def iniciar(self) -> None:
+        self.__vuelos = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
+        
+        print("Vuelos cargados:", self.__vuelos)
+        
         pass
 
     def login(self, doc: str, password: str) -> Dict:
@@ -50,22 +55,22 @@ class API:
         
 
 def main():
-    dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
-    index_file = os.path.join(dist_dir, 'index.html')
-
-    # if not os.path.exists(index_file):
-    #     raise FileNotFoundError("¡Asegúrate de haber ejecutado 'npm run build' en Vue!")
-    
-    api = API()
-
-    # webview.create_window('Gestor de pacientes', index_file, js_api=api)
-    webview.create_window("Dev", "http://localhost:5173", js_api=api)
-
     try:
         # Pruebas en consola
 
         
         # Activar la interfaz
+        dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
+        index_file = os.path.join(dist_dir, 'index.html')
+
+        # if not os.path.exists(index_file):
+        #     raise FileNotFoundError("¡Asegúrate de haber ejecutado 'npm run build' en Vue!")
+        
+        api = API()
+        api.iniciar()
+
+        # webview.create_window('Gestor de pacientes', index_file, js_api=api)
+        webview.create_window("Dev", "http://localhost:5173", js_api=api)
         
         webview.start(debug=True, http_server=True)
         # webview.start( http_server=True)
