@@ -353,8 +353,69 @@ class API:
     def crearReserva(self, idVuelo: str, pasajerosData: List) -> Dict:
         pass
 
-    def realizarCheckIn(self, idReserva: str, configEquipaje: Dict) -> Dict:
-        pass
+    def buscarReservaPorId(self, idReserva: str) -> Dict:
+        # Nota: Asegúrate de tener cargadas las reservas en self.__reservas o leer el TXT aquí
+        reservas = self.__persistencia.cargarDatos("reservas.txt", ["codigo_reserva", "codigo_vuelo", "num_doc", "tipo_asiento", "fecha_reserva"])
+        
+        # Filtramos las líneas que coinciden con el ID
+        reserva_match = [r for r in reservas if r["codigo_reserva"] == idReserva]
+        
+        if not reserva_match:
+            return {"success": False, "message": "Reserva no encontrada"}
+
+        # Tomamos datos generales del primer pasajero/linea (asumiendo mismo vuelo para el grupo)
+        first = reserva_match[0]
+        
+        # Necesitamos info del vuelo para mostrar origen/destino
+        vuelo_info = next((v for v in self.__vuelos if v.getCodigo() == first["codigo_vuelo"]), None)
+        
+        # Construimos la lista de pasajeros
+        pasajeros_list = []
+        for r in reserva_match:
+            # Buscar nombre del cliente (opcional, si tienes el num_doc)
+            nombre_cliente = "Pasajero" # Default
+            for c in self.__clientes:
+                if c.getNumDoc() == r["num_doc"]:
+                    nombre_cliente = c.getNombre()
+                    break
+            
+            pasajeros_list.append({
+                "num_doc": r["num_doc"],
+                "nombre": nombre_cliente,
+                "clase_asiento": r["tipo_asiento"] # 'ECO' o 'PREF'
+            })
+
+        data_response = {
+            "codigo_reserva": idReserva,
+            "vuelo": {
+                "codigo": vuelo_info.getCodigo() if vuelo_info else "N/A",
+                "origen": vuelo_info.getOrigen() if vuelo_info else "N/A",
+                "destino": vuelo_info.getDestino() if vuelo_info else "N/A",
+                "fecha": vuelo_info.getFechaHoraSalida().strftime("%Y-%m-%d") if vuelo_info else "",
+                "hora": vuelo_info.getFechaHoraSalida().strftime("%H:%M") if vuelo_info else ""
+            },
+            "pasajeros": pasajeros_list
+        }
+
+        return {"success": True, "data": data_response}
+
+    def realizarCheckIn(self, payload: Dict) -> Dict:
+        id_reserva = payload.get("idReserva")
+        pasajeros_data = payload.get("pasajeros") # Lista con cabina/bodega
+        
+        # 1. Validar Reserva
+        # 2. Calcular costos finales (Python debe ser la autoridad del precio)
+        # 3. Marcar reserva como "Check-In Completo" (en memoria o txt)
+        
+        # 4. Acumular Millas al titular (Buscar titular de esa reserva)
+        # Nota: Aquí deberías buscar quién hizo la reserva originalmente.
+        # Si no tienes guardado el titular en reserva.txt, asume el usuario logueado o el primer pasajero.
+        
+        if self.__usuarioSesion and isinstance(self.__usuarioSesion, Cliente):
+            self.__usuarioSesion.acumularMillas(500)
+            # Recordar: esto actualiza memoria, se guarda al cerrar ventana.
+        
+        return {"success": True, "millas_ganadas": 500}
 
     def _actualizarMillasCliente(self, cliente_obj: Cliente):
         cli_keys = ["nombre", "correo", "num_doc", "password_hash", "millas"]
