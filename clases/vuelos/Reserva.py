@@ -8,32 +8,48 @@ from clases.equipajes.Equipaje import Equipaje
 from clases.vuelos.Vuelo import Vuelo
 from clases.vuelos.Pasajero import Pasajero
 
-# Bloque especial para evitar el ciclo
 if TYPE_CHECKING:
     from clases.usuarios.Cliente import Cliente
-    # Si Equipaje también causa conflicto, muévelo aquí también
+    from clases.vuelos.Vuelo import Vuelo
+    from clases.vuelos.Pasajero import Pasajero
 
 class Reserva:
-    # Gracias a 'from __future__ ...', ahora puedes usar Cliente sin comillas
-    # aunque no esté importado realmente en tiempo de ejecución.
-    def __init__(self, idReserva: str, titular: Cliente, vuelo: Vuelo, fechaReserva: date):
+    def __init__(self, idReserva: str, titular: Cliente, vuelo: Vuelo, fechaReserva: str, pasajeros: List[Pasajero] = None):
         self.__idReserva = idReserva
         self.__titular = titular
         self.__vuelo = vuelo
-        self.__pasajeros: List[Pasajero] = []
         self.__fechaReserva = fechaReserva
+        # Si pasamos pasajeros en el init, los usamos, si no, lista vacía
+        self.__pasajeros: List[Pasajero] = pasajeros if pasajeros else []
         self.__totalPagado = 0.0
-        self.__estado = "Pendiente"
+        self.__estado = "Confirmada" # Pendiente, Confirmada, Cancelada
         self.__checkInRealizado = False
 
-    def agregarPasajero(self, pasajero: Pasajero) -> None:
-        pass
+    # --- GETTERS ---
+    def getId(self) -> str:
+        return self.__idReserva
 
-    def confirmarReserva(self) -> bool:
-        pass
+    def getTitular(self) -> Cliente:
+        return self.__titular
+    
+    def getVuelo(self) -> Vuelo:
+        return self.__vuelo
 
-    def cancelarReserva(self) -> bool:
-        pass
+    def getPasajeros(self) -> List[Pasajero]:
+        return self.__pasajeros
 
-    def realizarCheckIn(self, datosEquipaje: List) -> Dict:
-        pass
+    def getCheckInRealizado(self) -> bool:
+        return self.__checkInRealizado
+
+    def getFechaReserva(self) -> str:
+        return self.__fechaReserva
+
+    # --- LÓGICA ---
+    def setCheckInRealizado(self, estado: bool):
+        self.__checkInRealizado = estado
+
+    def realizarCheckIn(self) -> bool:
+        if self.__estado == "Cancelada":
+            return False
+        self.__checkInRealizado = True
+        return True

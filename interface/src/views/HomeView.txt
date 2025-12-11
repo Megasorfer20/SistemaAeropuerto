@@ -14,13 +14,13 @@
       </div>
     </div>
 
+    <!-- Sección de filtros -->
     <div class="container flights-section">
-      <!-- Sección de filtros (Restaurada completa) -->
       <div class="filters-card card fade-in">
         <h2 class="filters-title">Buscar Vuelos</h2>
 
         <div class="filters-grid">
-          <!-- Filtro Origen -->
+          <!-- Filtros inputs... (Igual que antes) -->
           <div class="filter-group">
             <label class="form-label">Origen</label>
             <input
@@ -31,7 +31,6 @@
             />
           </div>
 
-          <!-- Filtro Destino -->
           <div class="filter-group">
             <label class="form-label">Destino</label>
             <input
@@ -42,7 +41,6 @@
             />
           </div>
 
-          <!-- Filtro Día (Restaurado) -->
           <div class="filter-group">
             <label class="form-label">Día</label>
             <select v-model="filtros.dia" class="form-input">
@@ -57,7 +55,6 @@
             </select>
           </div>
 
-          <!-- Filtro Hora (Restaurado) -->
           <div class="filter-group">
             <label class="form-label">Hora Salida (Desde - Hasta)</label>
             <div style="display: flex; gap: 5px">
@@ -66,7 +63,6 @@
             </div>
           </div>
 
-          <!-- Botones de Filtro -->
           <div class="filter-group filter-actions">
             <button @click="filtrarVuelosEnBackend" class="btn btn-primary">Buscar</button>
             <button @click="limpiarFiltros" class="btn btn-secondary" style="margin-top: 5px">
@@ -83,7 +79,7 @@
           <p class="flights-count">{{ vuelos.length }} vuelos encontrados</p>
         </div>
 
-        <!-- PAGINACIÓN SUPERIOR (Restaurada) -->
+        <!-- PAGINACIÓN SUPERIOR -->
         <div v-if="totalPages > 1" class="pagination-container">
           <button
             @click="cambiarPagina(currentPage - 1)"
@@ -103,6 +99,7 @@
         </div>
 
         <!-- Grid de tarjetas -->
+        <!-- NOTA: Cambiamos 'vuelos' por 'vuelosPaginados' en el v-for -->
         <div v-if="vuelos.length > 0" class="flights-grid">
           <div
             v-for="(vuelo, index) in vuelosPaginados"
@@ -110,7 +107,7 @@
             class="flight-card card fade-in"
             :style="{ animationDelay: `${index * 0.1}s` }"
           >
-            <!-- Header -->
+            <!-- Header: ID y Origen-Destino -->
             <div class="flight-header">
               <div class="flight-number">
                 <span style="color: var(--primary-red)">✈</span>
@@ -119,7 +116,7 @@
               <div class="flight-route-simple">{{ vuelo.origen }} ➝ {{ vuelo.destino }}</div>
             </div>
 
-            <!-- Ruta y Hora -->
+            <!-- Información Horaria -->
             <div class="flight-route">
               <div class="route-point">
                 <div class="route-label">Día Salida</div>
@@ -138,46 +135,31 @@
               </div>
             </div>
 
-            <!-- Información Asientos (Texto corregido) -->
+            <!-- Información Asientos -->
             <div class="flight-info">
               <div class="info-item">
-                <span style="font-weight: 600">Económico:</span> {{ vuelo.asientosEco }} sillas
+                <span>Económicos: {{ vuelo.asientosEco }} sillas</span>
               </div>
               <div class="info-item">
-                <span style="font-weight: 600">Preferencial:</span> {{ vuelo.asientosPref }} sillas
+                <span>Preferenciales: {{ vuelo.asientosPref }} sillas</span>
               </div>
             </div>
 
-            <!-- BOTONES DE ACCIÓN (Lógica Admin vs Usuario) -->
+            <!-- Botones de acción -->
             <div class="flight-actions">
-              <!-- OPCIONES DE ADMIN -->
-              <template v-if="esAdmin">
-                <button @click="abrirModalEdicion(vuelo)" class="btn btn-outline">Editar</button>
-                <button
-                  @click="eliminarVuelo(vuelo.id)"
-                  class="btn btn-primary"
-                  style="background: #dc2626; border-color: #dc2626"
-                >
-                  Eliminar
-                </button>
-              </template>
-
-              <!-- OPCIONES DE USUARIO -->
-              <template v-else>
-                <button @click="verDetalles(vuelo.id)" class="btn btn-outline">Detalles</button>
-                <button
-                  @click="reservarVuelo(vuelo.id)"
-                  class="btn btn-primary"
-                  :disabled="!usuarioActual"
-                >
-                  {{ usuarioActual ? 'Reservar' : 'Login para Reservar' }}
-                </button>
-              </template>
+              <button @click="verDetalles(vuelo.id)" class="btn btn-outline">Ver Detalles</button>
+              <button
+                @click="reservarVuelo(vuelo.id)"
+                class="btn btn-primary"
+                :disabled="!usuarioActual"
+              >
+                {{ usuarioActual ? 'Reservar' : 'Login para Reservar' }}
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- PAGINACIÓN INFERIOR (Restaurada) -->
+        <!-- PAGINACIÓN INFERIOR -->
         <div v-if="totalPages > 1" class="pagination-container" style="margin-top: 30px">
           <button
             @click="cambiarPagina(currentPage - 1)"
@@ -196,49 +178,11 @@
           </button>
         </div>
 
-        <!-- Mensaje sin resultados -->
+        <!-- Mensaje cuando no hay vuelos -->
         <div v-else-if="vuelos.length === 0" class="no-flights card">
           <h3>No se encontraron vuelos</h3>
           <p>Intenta ajustar tus filtros de búsqueda</p>
         </div>
-      </div>
-    </div>
-
-    <!-- MODAL DE EDICIÓN (SOLO ADMIN) -->
-    <div v-if="mostrarModalEdicion" class="modal-overlay">
-      <div class="modal-card card">
-        <h3>Editar Vuelo {{ vueloEnEdicion.codigo }}</h3>
-        <form @submit.prevent="guardarEdicion" class="edit-form">
-          <div class="form-group">
-            <label>Origen</label>
-            <input v-model="vueloEnEdicion.origen" class="form-input" required />
-          </div>
-          <div class="form-group">
-            <label>Destino</label>
-            <input v-model="vueloEnEdicion.destino" class="form-input" required />
-          </div>
-          <div class="form-group">
-            <label>Fecha (AAAA-MM-DD)</label>
-            <input type="text" v-model="vueloEnEdicion.dia" class="form-input" required />
-          </div>
-          <div class="form-group">
-            <label>Hora (HH:MM)</label>
-            <input type="time" v-model="vueloEnEdicion.hora" class="form-input" required />
-          </div>
-          <div class="form-group">
-            <label>Sillas Económico</label>
-            <input type="number" v-model="vueloEnEdicion.sillas_eco" class="form-input" required />
-          </div>
-          <div class="form-group">
-            <label>Sillas Preferencial</label>
-            <input type="number" v-model="vueloEnEdicion.sillas_pref" class="form-input" required />
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" @click="cerrarModal" class="btn btn-outline">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-          </div>
-        </form>
       </div>
     </div>
   </div>
@@ -255,7 +199,6 @@ export default {
   data() {
     return {
       vuelos: [],
-      // Filtros completos
       filtros: {
         origen: '',
         destino: '',
@@ -264,21 +207,17 @@ export default {
         horaFin: '',
       },
       usuarioActual: null,
-      // Paginación
+      // Variables para paginación
       currentPage: 1,
       itemsPerPage: 10,
-      // Modal Admin
-      mostrarModalEdicion: false,
-      vueloEnEdicion: {},
     }
   },
   computed: {
-    esAdmin() {
-      return this.usuarioActual?.tipo_usuario === 'Admin' || this.usuarioActual?.tipo === 'Admin'
-    },
+    // Calcula el número total de páginas
     totalPages() {
       return Math.ceil(this.vuelos.length / this.itemsPerPage)
     },
+    // Retorna solo los vuelos de la página actual
     vuelosPaginados() {
       const start = (this.currentPage - 1) * this.itemsPerPage
       const end = start + this.itemsPerPage
@@ -297,30 +236,36 @@ export default {
     }
   },
   methods: {
-    cargarUsuario() {
-      const usuario = localStorage.getItem('usuarioActual')
-      if (usuario) {
-        this.usuarioActual = JSON.parse(usuario)
-      }
-    },
     cargarVuelosIniciales() {
       window.pywebview.api
         .obtenerVuelosIniciales()
         .then((response) => {
+          console.log('Vuelos cargados:', response)
           this.vuelos = response
-          this.currentPage = 1
+          this.currentPage = 1 // Resetear a página 1 al cargar
         })
         .catch((error) => console.error('Error python:', error))
     },
+
     filtrarVuelosEnBackend() {
+      const params = {
+        origen: this.filtros.origen,
+        destino: this.filtros.destino,
+        dia: this.filtros.dia,
+        horaInicio: this.filtros.horaInicio,
+        horaFin: this.filtros.horaFin,
+      }
+
       window.pywebview.api
-        .buscarVuelos(this.filtros)
+        .buscarVuelos(params)
         .then((response) => {
+          console.log('Resultados búsqueda:', response)
           this.vuelos = response
-          this.currentPage = 1
+          this.currentPage = 1 // Resetear a página 1 al filtrar
         })
         .catch((error) => console.error('Error buscando:', error))
     },
+
     limpiarFiltros() {
       this.filtros = {
         origen: '',
@@ -331,9 +276,12 @@ export default {
       }
       this.cargarVuelosIniciales()
     },
+
+    // Método para cambiar página y hacer scroll suave al inicio de la lista
     cambiarPagina(nuevaPagina) {
       if (nuevaPagina >= 1 && nuevaPagina <= this.totalPages) {
         this.currentPage = nuevaPagina
+        // Opcional: hacer scroll hacia arriba de la lista para mejor UX
         const listElement = document.querySelector('.flights-list')
         if (listElement) {
           listElement.scrollIntoView({ behavior: 'smooth' })
@@ -341,59 +289,23 @@ export default {
       }
     },
 
-    // --- ACCIONES DE USUARIO ---
+    cargarUsuario() {
+      const usuario = localStorage.getItem('usuarioActual')
+      if (usuario) {
+        this.usuarioActual = JSON.parse(usuario)
+      }
+    },
+
     verDetalles(vueloId) {
       this.$router.push(`/vuelo/${vueloId}`)
     },
+
     reservarVuelo(vueloId) {
       if (!this.usuarioActual) {
         this.$router.push('/login')
       } else {
         this.$router.push(`/asientos/${vueloId}`)
       }
-    },
-
-    // --- ACCIONES DE ADMINISTRADOR ---
-    eliminarVuelo(id) {
-      if (confirm('¿Estás seguro de eliminar el vuelo ' + id + '?')) {
-        window.pywebview.api.admin_eliminar_vuelo(id).then((res) => {
-          if (res.success) {
-            alert('Vuelo eliminado')
-            this.cargarVuelosIniciales() // Recargar lista
-          } else {
-            alert('Error: ' + res.message)
-          }
-        })
-      }
-    },
-    abrirModalEdicion(vuelo) {
-      this.vueloEnEdicion = {
-        codigo: vuelo.id,
-        origen: vuelo.origen,
-        destino: vuelo.destino,
-        dia: vuelo.fechaDiaSalida,
-        hora: vuelo.fechaHoraSalida,
-        sillas_eco: vuelo.asientosEco,
-        sillas_pref: vuelo.asientosPref,
-      }
-      this.mostrarModalEdicion = true
-    },
-    cerrarModal() {
-      this.mostrarModalEdicion = false
-      this.vueloEnEdicion = {}
-    },
-    guardarEdicion() {
-      window.pywebview.api
-        .admin_modificar_vuelo(this.vueloEnEdicion.codigo, this.vueloEnEdicion)
-        .then((res) => {
-          if (res.success) {
-            alert('Vuelo modificado correctamente')
-            this.cerrarModal()
-            this.cargarVuelosIniciales() // Recargar lista
-          } else {
-            alert('Error: ' + res.message)
-          }
-        })
     },
   },
 }

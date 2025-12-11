@@ -10,7 +10,7 @@ class Administrador(Usuario):
         super().__init__(nombre, correo, numDoc, password, es_hash)
         # Lógica específica de administrador (gestor, keys) se mantiene igual...
         self.__gestor = GestorTxt("database")
-        self.__keys_vuelos = ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"]
+        self.__keys_vuelos = ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosPref","asientosEco"]
         
 
     def modificarVuelo(self, idVuelo: str, data: Dict) -> bool:
