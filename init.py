@@ -34,37 +34,43 @@ class API:
         self.__vuelos = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
         print(f"Datos cargados: {len(self.__vuelos)} vuelos.")
 
-    # --- MÉTODO QUE FALTABA (SOLUCIÓN ERROR CONSOLA) ---
     def obtenerVuelosIniciales(self) -> List[Dict]:
         return self.__vuelos
 
-    # --- MÉTODO CON FILTROS (SOLUCIÓN BACKEND) ---
     def buscarVuelos(self, filtros: Dict) -> List[Dict]:
         """
-        Filtra los vuelos según: origen, destino, dia, horaInicio, horaFin
+        Filtra los vuelos según: id, origen, destino, dia, horaInicio, horaFin
         """
         resultado = []
         
+        # 1. Obtenemos el ID del filtro (nuevo)
+        id_b = filtros.get("id", "").strip()
+        
         origen_b = filtros.get("origen", "").lower().strip()
         destino_b = filtros.get("destino", "").lower().strip()
-        dia_b = filtros.get("dia", "").upper().strip() # LUNES, MARTES...
+        dia_b = filtros.get("dia", "").upper().strip() 
         hora_inicio_str = filtros.get("horaInicio", "")
         hora_fin_str = filtros.get("horaFin", "")
 
         for v in self.__vuelos:
-            # 1. Filtro Origen
+            # --- NUEVA VALIDACIÓN: ID ---
+            # Si hay un ID en el filtro y no coincide, saltamos
+            if id_b and v["id"] != id_b:
+                continue
+
+            # 2. Filtro Origen
             if origen_b and origen_b not in v["origen"].lower():
                 continue
             
-            # 2. Filtro Destino
+            # 3. Filtro Destino
             if destino_b and destino_b not in v["destino"].lower():
                 continue
 
-            # 3. Filtro Día
+            # 4. Filtro Día
             if dia_b and dia_b != "TODOS" and dia_b != v["fechaDiaSalida"].upper():
                 continue
 
-            # 4. Filtro Rango Horario
+            # 5. Filtro Rango Horario
             try:
                 if hora_inicio_str or hora_fin_str:
                     hora_vuelo = datetime.strptime(v["fechaHoraSalida"], "%H:%M").time()

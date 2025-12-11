@@ -14,13 +14,13 @@
       </div>
     </div>
 
-    <!-- Sección de filtros (MODIFICADA) -->
+    <!-- Sección de filtros -->
     <div class="container flights-section">
       <div class="filters-card card fade-in">
         <h2 class="filters-title">Buscar Vuelos</h2>
 
         <div class="filters-grid">
-          <!-- Filtro Origen -->
+          <!-- Filtros inputs... (Igual que antes) -->
           <div class="filter-group">
             <label class="form-label">Origen</label>
             <input
@@ -31,7 +31,6 @@
             />
           </div>
 
-          <!-- Filtro Destino -->
           <div class="filter-group">
             <label class="form-label">Destino</label>
             <input
@@ -42,7 +41,6 @@
             />
           </div>
 
-          <!-- Filtro Día de la Semana -->
           <div class="filter-group">
             <label class="form-label">Día</label>
             <select v-model="filtros.dia" class="form-input">
@@ -57,7 +55,6 @@
             </select>
           </div>
 
-          <!-- Filtro Rango Hora -->
           <div class="filter-group">
             <label class="form-label">Hora Salida (Desde - Hasta)</label>
             <div style="display: flex; gap: 5px">
@@ -66,7 +63,6 @@
             </div>
           </div>
 
-          <!-- Botón Buscar (Llama al Backend) -->
           <div class="filter-group filter-actions">
             <button @click="filtrarVuelosEnBackend" class="btn btn-primary">Buscar</button>
             <button @click="limpiarFiltros" class="btn btn-secondary" style="margin-top: 5px">
@@ -83,10 +79,30 @@
           <p class="flights-count">{{ vuelos.length }} vuelos encontrados</p>
         </div>
 
-        <!-- Grid de tarjetas (MODIFICADA CON TUS KEYS) -->
+        <!-- PAGINACIÓN SUPERIOR -->
+        <div v-if="totalPages > 1" class="pagination-container">
+          <button
+            @click="cambiarPagina(currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="btn-page"
+          >
+            &lt; Anterior
+          </button>
+          <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
+          <button
+            @click="cambiarPagina(currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="btn-page"
+          >
+            Siguiente &gt;
+          </button>
+        </div>
+
+        <!-- Grid de tarjetas -->
+        <!-- NOTA: Cambiamos 'vuelos' por 'vuelosPaginados' en el v-for -->
         <div v-if="vuelos.length > 0" class="flights-grid">
           <div
-            v-for="(vuelo, index) in vuelos"
+            v-for="(vuelo, index) in vuelosPaginados"
             :key="vuelo.id"
             class="flight-card card fade-in"
             :style="{ animationDelay: `${index * 0.1}s` }"
@@ -97,7 +113,6 @@
                 <span style="color: var(--primary-red)">✈</span>
                 <span>{{ vuelo.id }}</span>
               </div>
-              <!-- Sin precio porque no viene en el CSV/JSON -->
               <div class="flight-route-simple">{{ vuelo.origen }} ➝ {{ vuelo.destino }}</div>
             </div>
 
@@ -109,7 +124,6 @@
               </div>
 
               <div class="route-line">
-                <!-- Flecha decorativa -->
                 <span style="color: #ccc">--------</span>
               </div>
 
@@ -145,8 +159,27 @@
           </div>
         </div>
 
+        <!-- PAGINACIÓN INFERIOR -->
+        <div v-if="totalPages > 1" class="pagination-container" style="margin-top: 30px">
+          <button
+            @click="cambiarPagina(currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="btn-page"
+          >
+            &lt; Anterior
+          </button>
+          <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
+          <button
+            @click="cambiarPagina(currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="btn-page"
+          >
+            Siguiente &gt;
+          </button>
+        </div>
+
         <!-- Mensaje cuando no hay vuelos -->
-        <div v-else class="no-flights card">
+        <div v-else-if="vuelos.length === 0" class="no-flights card">
           <h3>No se encontraron vuelos</h3>
           <p>Intenta ajustar tus filtros de búsqueda</p>
         </div>
@@ -165,7 +198,7 @@ export default {
   },
   data() {
     return {
-      vuelos: [], // Aquí guardamos lo que llega de Python
+      vuelos: [],
       filtros: {
         origen: '',
         destino: '',
@@ -174,12 +207,26 @@ export default {
         horaFin: '',
       },
       usuarioActual: null,
+      // Variables para paginación
+      currentPage: 1,
+      itemsPerPage: 10,
     }
+  },
+  computed: {
+    // Calcula el número total de páginas
+    totalPages() {
+      return Math.ceil(this.vuelos.length / this.itemsPerPage)
+    },
+    // Retorna solo los vuelos de la página actual
+    vuelosPaginados() {
+      const start = (this.currentPage - 1) * this.itemsPerPage
+      const end = start + this.itemsPerPage
+      return this.vuelos.slice(start, end)
+    },
   },
   mounted() {
     this.cargarUsuario()
 
-    // Lógica de espera para PyWebView
     if (window.pywebview) {
       this.cargarVuelosIniciales()
     } else {
@@ -189,21 +236,18 @@ export default {
     }
   },
   methods: {
-    // 1. Carga inicial
     cargarVuelosIniciales() {
-      // Llamada al método nuevo en Python
       window.pywebview.api
         .obtenerVuelosIniciales()
         .then((response) => {
           console.log('Vuelos cargados:', response)
           this.vuelos = response
+          this.currentPage = 1 // Resetear a página 1 al cargar
         })
         .catch((error) => console.error('Error python:', error))
     },
 
-    // 2. Búsqueda con filtros en Backend
     filtrarVuelosEnBackend() {
-      // Preparamos el objeto para enviar a Python
       const params = {
         origen: this.filtros.origen,
         destino: this.filtros.destino,
@@ -217,6 +261,7 @@ export default {
         .then((response) => {
           console.log('Resultados búsqueda:', response)
           this.vuelos = response
+          this.currentPage = 1 // Resetear a página 1 al filtrar
         })
         .catch((error) => console.error('Error buscando:', error))
     },
@@ -232,18 +277,29 @@ export default {
       this.cargarVuelosIniciales()
     },
 
+    // Método para cambiar página y hacer scroll suave al inicio de la lista
+    cambiarPagina(nuevaPagina) {
+      if (nuevaPagina >= 1 && nuevaPagina <= this.totalPages) {
+        this.currentPage = nuevaPagina
+        // Opcional: hacer scroll hacia arriba de la lista para mejor UX
+        const listElement = document.querySelector('.flights-list')
+        if (listElement) {
+          listElement.scrollIntoView({ behavior: 'smooth' })
+        }
+      }
+    },
+
     cargarUsuario() {
       const usuario = localStorage.getItem('usuarioActual')
       if (usuario) {
         this.usuarioActual = JSON.parse(usuario)
       }
     },
-    
-    // Ver detalles de un vuelo
+
     verDetalles(vueloId) {
       this.$router.push(`/vuelo/${vueloId}`)
     },
-    // Iniciar proceso de reserva
+
     reservarVuelo(vueloId) {
       if (!this.usuarioActual) {
         this.$router.push('/login')
@@ -257,4 +313,58 @@ export default {
 
 <style scoped>
 @import '../assets/styles/HomeView.css';
+
+/* Ajustes adicionales para las cards */
+.route-label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.route-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.flight-route-simple {
+  font-weight: bold;
+  color: #333;
+}
+
+/* ESTILOS DE PAGINACIÓN */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.btn-page {
+  padding: 8px 16px;
+  background-color: white;
+  border: 1px solid var(--border-gray); /* Usando variable existente */
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-dark);
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+  background-color: var(--primary-red);
+  color: white;
+  border-color: var(--primary-red);
+}
+
+.btn-page:disabled {
+  background-color: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+  border-color: #eee;
+}
+
+.page-info {
+  font-weight: 600;
+  color: var(--text-dark);
+}
 </style>

@@ -27,35 +27,41 @@
                     fill="currentColor"
                   />
                 </svg>
-                <span>{{ vuelo.numeroVuelo }}</span>
+                <!-- KEY: id -->
+                <span>{{ vuelo.id }}</span>
               </div>
+              <!-- KEYS: origen y destino -->
               <p class="flight-subtitle">{{ vuelo.origen }} → {{ vuelo.destino }}</p>
             </div>
-            <div class="flight-price-large">
-              <span class="price-label">Desde</span>
-              <span class="price-value">${{ vuelo.precio.toFixed(2) }}</span>
-            </div>
+
+            <!-- ELIMINADO: Precio (no existe en el TXT) -->
           </div>
 
-          <!-- Información de horarios -->
+          <!-- Información de horarios (SIMPLIFICADA) -->
           <div class="flight-schedule">
             <div class="schedule-item">
-              <div class="schedule-label">Salida</div>
-              <div class="schedule-value">{{ vuelo.horaSalida }}</div>
-              <div class="schedule-date">{{ formatearFecha(vuelo.fechaSalida) }}</div>
+              <div class="schedule-label">Día de Salida</div>
+              <!-- KEY: fechaDiaSalida -->
+              <div class="schedule-value">{{ vuelo.fechaDiaSalida }}</div>
             </div>
 
             <div class="schedule-divider">
+              <!-- Icono de flecha simple -->
               <svg viewBox="0 0 24 24" fill="none">
-                <path d="M16.01 11H4V13H16.01V16L20 12L16.01 8V11Z" fill="currentColor" />
+                <path
+                  d="M5 12H19M19 12L12 5M19 12L12 19"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
-              <span>{{ calcularDuracion(vuelo) }}</span>
             </div>
 
             <div class="schedule-item">
-              <div class="schedule-label">Llegada</div>
-              <div class="schedule-value">{{ vuelo.horaLlegada }}</div>
-              <div class="schedule-date">{{ formatearFecha(vuelo.fechaLlegada) }}</div>
+              <div class="schedule-label">Hora de Salida</div>
+              <!-- KEY: fechaHoraSalida -->
+              <div class="schedule-value">{{ vuelo.fechaHoraSalida }}</div>
             </div>
           </div>
         </div>
@@ -74,12 +80,14 @@
             </h3>
             <div class="seat-types">
               <div class="seat-type">
-                <span class="seat-label">Clase Normal</span>
-                <span class="seat-count">{{ vuelo.asientosNormales }} asientos</span>
+                <span class="seat-label">Clase Económica</span>
+                <!-- KEY: asientosEco -->
+                <span class="seat-count">{{ vuelo.asientosEco }} asientos</span>
               </div>
               <div class="seat-type">
-                <span class="seat-label">Clase VIP</span>
-                <span class="seat-count">{{ vuelo.asientosVIP }} asientos</span>
+                <span class="seat-label">Clase Preferencial</span>
+                <!-- KEY: asientosPref -->
+                <span class="seat-count">{{ vuelo.asientosPref }} asientos</span>
               </div>
             </div>
           </div>
@@ -94,8 +102,9 @@
               </svg>
               Destino
             </h3>
+            <!-- KEY: destino -->
             <p class="destination-name">{{ vuelo.destino }}</p>
-            <p class="destination-description">Un lugar increíble para visitar</p>
+            <p class="destination-description">Vuelo directo desde {{ vuelo.origen }}</p>
           </div>
         </div>
 
@@ -116,7 +125,7 @@
 
       <!-- Mensaje de carga o error -->
       <div v-else class="loading-card card">
-        <p>Cargando información del vuelo...</p>
+        <p>{{ mensajeCarga }}</p>
       </div>
     </div>
   </div>
@@ -124,7 +133,6 @@
 
 <script>
 import NavBar from '../components/NavBar.vue'
-import vuelosData from '../data/vuelos.json'
 
 export default {
   name: 'FlightSelectionView',
@@ -133,51 +141,58 @@ export default {
   },
   data() {
     return {
-      // Vuelo actual
       vuelo: null,
-      // Usuario actual
       usuarioActual: null,
+      mensajeCarga: 'Cargando información del vuelo...',
     }
   },
   mounted() {
-    // Cargar datos al montar
-    this.cargarVuelo()
     this.cargarUsuario()
+
+    if (window.pywebview) {
+      this.cargarVueloBackend()
+    } else {
+      window.addEventListener('pywebviewready', () => {
+        this.cargarVueloBackend()
+      })
+    }
   },
   methods: {
-    // Cargar información del vuelo desde el ID en la ruta
-    cargarVuelo() {
-      const vueloId = parseInt(this.$route.params.id)
-      this.vuelo = vuelosData.find((v) => v.id === vueloId)
+    // 1. Cargar vuelo usando el ID de la ruta
+    cargarVueloBackend() {
+      // Obtenemos el ID de la URL (ej: /vuelo/VU1234L)
+      const vueloId = this.$route.params.id
+
+      // Creamos el filtro solo con el ID
+      const filtros = { id: vueloId }
+
+      window.pywebview.api
+        .buscarVuelos(filtros)
+        .then((response) => {
+          if (response && response.length > 0) {
+            // Como buscarVuelos devuelve un array, tomamos el primero
+            this.vuelo = response[0]
+          } else {
+            this.mensajeCarga = 'No se encontró el vuelo solicitado.'
+          }
+        })
+        .catch((err) => {
+          console.error('Error cargando vuelo:', err)
+          this.mensajeCarga = 'Error de conexión.'
+        })
     },
-    // Cargar usuario desde localStorage
+
     cargarUsuario() {
       const usuario = localStorage.getItem('usuarioActual')
       if (usuario) {
         this.usuarioActual = JSON.parse(usuario)
       }
     },
-    // Volver a la lista de vuelos
+
     volver() {
-      this.$router.push('/')
+      this.$router.go(-1) // Vuelve a la página anterior (Home) manteniendo estado si es posible
     },
-    // Formatear fecha
-    formatearFecha(fecha) {
-      const date = new Date(fecha + 'T00:00:00')
-      return date.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      })
-    },
-    // Calcular duración del vuelo
-    calcularDuracion(vuelo) {
-      const salida = new Date(`${vuelo.fechaSalida}T${vuelo.horaSalida}`)
-      const llegada = new Date(`${vuelo.fechaLlegada}T${vuelo.horaLlegada}`)
-      const duracion = (llegada - salida) / (1000 * 60 * 60)
-      return `${Math.floor(duracion)}h ${Math.round((duracion % 1) * 60)}m`
-    },
-    // Iniciar proceso de reserva
+
     reservarVuelo() {
       if (!this.usuarioActual) {
         this.$router.push('/login')
