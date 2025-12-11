@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 from clases.asientos.Asiento import Asiento
+from clases.asientos.AsientoEconomico import AsientoEconomico
+from clases.asientos.AsientoPreferencial import AsientoPreferencial
 from clases.equipajes.Equipaje import Equipaje
 from clases.usuarios.Cliente import Cliente
 from clases.usuarios.Administrador import Administrador
@@ -94,7 +96,16 @@ class API:
 def main():
     try:
         # Pruebas en consola
-
+        
+        asiento1 = AsientoPreferencial(
+        id="A1",
+        fila=10,
+        columna="C",
+        esVentana=True,
+        precioBase=0     # Este valor luego es reemplazado en calcularPrecio
+        )
+        asiento1._seleccionManual = False
+        print(asiento1.calcularPrecio(False))
         
         # Activar la interfaz
         dist_dir = os.path.join(os.path.dirname(__file__), 'interface', 'dist')
@@ -109,7 +120,7 @@ def main():
         # webview.create_window('Gestor de pacientes', index_file, js_api=api)
         webview.create_window("Dev", "http://localhost:5173", js_api=api)
         
-        webview.start(debug=True, http_server=True)
+        # webview.start(debug=True, http_server=True)
         # webview.start( http_server=True)
     finally:
         #PRUEBAS EN CONSOLA
