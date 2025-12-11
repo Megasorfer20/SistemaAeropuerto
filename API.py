@@ -68,8 +68,7 @@ class API:
         return datetime.now()
 
     def iniciar(self) -> None:
-        
-        # 2. Cargar Administradores
+        # --- CARGAR ADMINISTRADORES ---
         admins_data = self.__persistencia.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
         self.__administradores = []
         for admin in admins_data:
