@@ -137,12 +137,11 @@ class API:
             "ventas_por_vuelo": ventas,
             "pasajeros": datos_pasajeros
         }
-        
-
+    
+    
 def main():
     try:
         # Pruebas en consola
-        
         asiento1 = AsientoPreferencial(
         id="A1",
         fila=10,
@@ -162,6 +161,7 @@ def main():
         
         api = API()
         api.iniciar()
+        
 
         # webview.create_window('Gestor de pacientes', index_file, js_api=api)
         webview.create_window("Dev", "http://localhost:5173", js_api=api)
