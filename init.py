@@ -23,18 +23,73 @@ from clases.GestorTxt import GestorTxt
 class API:
     def __init__(self):
         self.__usuarioSesion: Optional[Usuario] = None
-        self.__vuelos: List[Vuelo] = []
+        self.__vuelos: List[Dict] = [] # Cambiado a List[Dict] porque cargamos diccionarios del TXT
         self.__usuariosRegistrados: List[Usuario] = []
         self.__reservas: List[Reserva] = []
+        # NOTA: Usamos __persistencia en lugar de __gestor para ser consistentes
         self.__persistencia: Optional[IPersistencia] = GestorTxt()
 
     def iniciar(self) -> None:
+        # Carga inicial de datos
         self.__vuelos = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
+        print(f"Datos cargados: {len(self.__vuelos)} vuelos.")
+
+    # --- MÉTODO QUE FALTABA (SOLUCIÓN ERROR CONSOLA) ---
+    def obtenerVuelosIniciales(self) -> List[Dict]:
+        return self.__vuelos
+
+    # --- MÉTODO CON FILTROS (SOLUCIÓN BACKEND) ---
+    def buscarVuelos(self, filtros: Dict) -> List[Dict]:
+        """
+        Filtra los vuelos según: origen, destino, dia, horaInicio, horaFin
+        """
+        resultado = []
+        
+        origen_b = filtros.get("origen", "").lower().strip()
+        destino_b = filtros.get("destino", "").lower().strip()
+        dia_b = filtros.get("dia", "").upper().strip() # LUNES, MARTES...
+        hora_inicio_str = filtros.get("horaInicio", "")
+        hora_fin_str = filtros.get("horaFin", "")
+
+        for v in self.__vuelos:
+            # 1. Filtro Origen
+            if origen_b and origen_b not in v["origen"].lower():
+                continue
+            
+            # 2. Filtro Destino
+            if destino_b and destino_b not in v["destino"].lower():
+                continue
+
+            # 3. Filtro Día
+            if dia_b and dia_b != "TODOS" and dia_b != v["fechaDiaSalida"].upper():
+                continue
+
+            # 4. Filtro Rango Horario
+            try:
+                if hora_inicio_str or hora_fin_str:
+                    hora_vuelo = datetime.strptime(v["fechaHoraSalida"], "%H:%M").time()
+                    
+                    if hora_inicio_str:
+                        hora_min = datetime.strptime(hora_inicio_str, "%H:%M").time()
+                        if hora_vuelo < hora_min:
+                            continue
+                    
+                    if hora_fin_str:
+                        hora_max = datetime.strptime(hora_fin_str, "%H:%M").time()
+                        if hora_vuelo > hora_max:
+                            continue
+            except ValueError:
+                print(f"Error parseando horas en vuelo {v['id']}")
+                continue
+
+            resultado.append(v)
+        
+        return resultado
 
 
     def login(self, doc: str, password: str) -> Dict:
         # 1. BUSCAR EN ADMINISTRADORES
-        admins = self.__gestor.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
+        admins = self.__persistencia.cargarDatos("administradores.txt", ["nombre", "correo", "num_doc", "password_hash"])
         for admin_data in admins:
             user = Administrador(admin_data["nombre"], admin_data["correo"], admin_data["num_doc"], admin_data["password_hash"])
             # Asumiendo que Administrador tiene verifyPassword o verificarPassword (según tu clase Usuario)
@@ -43,7 +98,7 @@ class API:
                 return {"success": True, "user": {"nombre": user._nombre, "tipo_usuario": "Administrador"}}
                 
         # 2. BUSCAR EN CLIENTES
-        clientes = self.__gestor.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
+        clientes = self.__persistencia.cargarDatos("clientes.txt", ["nombre", "correo", "num_doc", "password_hash", "millas"])
         for cli_data in clientes:
             user_temp = Cliente(cli_data["nombre"], cli_data["correo"], cli_data["num_doc"], cli_data["password_hash"], int(cli_data.get("millas", 0)))
             if user_temp.verificarPassword(password): # Usar el método estándar de la clase
@@ -74,11 +129,6 @@ class API:
         if self.__gestor.guardarDatos("clientes.txt", clientes):
             return {"success": True, "message": "Registro exitoso"}
         return {"success": False, "message": "Error al guardar"}
-
-    def buscarVuelos(self, filtros: Dict) -> List[Vuelo]:
-        resultado = self.__vuelos
-        
-        return resultado
 
     def obtenerDetalleVuelo(self, idVuelo: str) -> Dict:
         keys = ["codigo", "origen", "destino", "dia", "hora", "sillas_pref", "sillas_eco"]
