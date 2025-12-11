@@ -15,7 +15,7 @@ class GestorTxt(IPersistencia): # Corregido el nombre duplicado de la clase
             return []
 
         try:
-            with open(ruta_completa, "r", encoding="utf-8") as archivo:
+            with open(ruta_completa, "r", encoding="utf-8-sig") as archivo:
                 for linea in archivo:
                     linea = linea.strip()
                     if linea:
@@ -40,7 +40,7 @@ class GestorTxt(IPersistencia): # Corregido el nombre duplicado de la clase
 
             lineas_formateadas = self._formatearDatos(datos)
             
-            with open(ruta_completa, "w", encoding="utf-8") as archivo:
+            with open(ruta_completa, "w", encoding="utf-8-sig") as archivo:
                 contenido = "\n".join(lineas_formateadas)
                 archivo.write(contenido)
                 archivo.write("\n") 
