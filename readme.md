@@ -235,11 +235,11 @@ Esta clase es la única que debe instanciarse en el `main.py`.
  Edward pon los usuarios Cliente y Admin aca
 
 **Clientes:**
- ```csv
- 
+ ```
+ Cliente: Usuario 2002 / Clave 12345
  ```
 
 **Admin:**
- ```csv
- 
+ ```
+ Admin: Usuario 1001 / Clave 12345
  ```

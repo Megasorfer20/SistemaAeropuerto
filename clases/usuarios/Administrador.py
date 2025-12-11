@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 from clases.usuarios.Usuario import Usuario
 from clases.vuelos.Vuelo import Vuelo
+from clases.GestorTxt import GestorTxt
 
 class Administrador(Usuario):
     def __init__(self, nombre: str, correo: str, numDoc: str, passwordHash: str):
