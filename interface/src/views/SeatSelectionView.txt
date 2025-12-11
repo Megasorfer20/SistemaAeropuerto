@@ -244,48 +244,47 @@ export default {
     cargarVueloBackend() {
       const vueloId = this.$route.params.id
 
-      // LLAMADA DOBLE: Traer info del vuelo Y sillas ocupadas
-      Promise.all([
-          window.pywebview.api.buscarVuelos({ id: vueloId }),
-          window.pywebview.api.obtener_sillas_ocupadas(vueloId)
-      ])
-      .then(([resVuelos, resOcupadas]) => {
-          if (resVuelos && resVuelos.length > 0) {
-            this.vuelo = resVuelos[0]
-            // Pasamos las sillas ocupadas reales a la función generadora
-            this.generarAsientos(resOcupadas || []) 
+      // Usamos buscarVuelos con el filtro ID para obtener la info
+      window.pywebview.api
+        .buscarVuelos({ id: vueloId })
+        .then((response) => {
+          if (response && response.length > 0) {
+            this.vuelo = response[0]
+            this.generarAsientos()
           } else {
             this.mensajeCarga = 'Vuelo no encontrado.'
           }
-      })
-      .catch((err) => {
+        })
+        .catch((err) => {
           console.error(err)
           this.mensajeCarga = 'Error de conexión.'
-      })
+        })
     },
 
-    // RECIBE LA LISTA DE OCUPADAS
-    generarAsientos(sillasOcupadasIds) {
+    generarAsientos() {
+      // Obtenemos capacidades desde el TXT (convertir a int)
       const capVip = parseInt(this.vuelo.asientosPref)
       const capEco = parseInt(this.vuelo.asientosEco)
-      const asientosPorFila = 6 
+
+      const asientosPorFila = 6 // Estándar tipo A320
       const letras = ['A', 'B', 'C', 'D', 'E', 'F']
 
       // --- GENERAR VIP ---
+      // Calculamos filas necesarias basado en capacidad total
       const filasVIP = Math.ceil(capVip / asientosPorFila)
+
       for (let fila = 1; fila <= filasVIP; fila++) {
         for (let i = 0; i < asientosPorFila; i++) {
+          // No crear más asientos que la capacidad real
           if (this.asientosVIP.length >= capVip) break
-          
-          const idAsiento = `VIP-${fila}${letras[i]}`
-          
+
           this.asientosVIP.push({
-            id: idAsiento,
+            id: `VIP-${fila}${letras[i]}`,
             numero: `${fila}${letras[i]}`,
             tipo: 'vip',
-            precio: Number(this.PRECIO_VIP), // ASEGURAR QUE ES NÚMERO (Solución Error #3)
-            // VERIFICAR SI ESTÁ EN LA LISTA REAL (Solución Error #1)
-            ocupado: sillasOcupadasIds.includes(idAsiento), 
+            precio: this.PRECIO_VIP,
+            // Simulamos ocupación aleatoria (esto debería venir del backend de reservas en una fase avanzada)
+            ocupado: Math.random() < 0.2,
           })
         }
       }
@@ -293,18 +292,17 @@ export default {
       // --- GENERAR ECO ---
       const filasEco = Math.ceil(capEco / asientosPorFila)
       const filaInicioEco = filasVIP + 1
+
       for (let fila = filaInicioEco; fila < filaInicioEco + filasEco; fila++) {
         for (let i = 0; i < asientosPorFila; i++) {
           if (this.asientosNormales.length >= capEco) break
-          
-          const idAsiento = `ECO-${fila}${letras[i]}`
 
           this.asientosNormales.push({
-            id: idAsiento,
+            id: `ECO-${fila}${letras[i]}`,
             numero: `${fila}${letras[i]}`,
-            tipo: 'normal', 
-            precio: Number(this.PRECIO_ECO), // ASEGURAR NÚMERO
-            ocupado: sillasOcupadasIds.includes(idAsiento)
+            tipo: 'normal', // Equivale a economica
+            precio: this.PRECIO_ECO,
+            ocupado: Math.random() < 0.3,
           })
         }
       }

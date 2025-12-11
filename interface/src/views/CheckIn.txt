@@ -265,20 +265,6 @@ export default {
           }))
         };
 
-        const response = await window.pywebview.api.realizarCheckIn(payload);
-
-        if (response.success) {
-          this.successMessage = `Check-In realizado correctamente. Has acumulado ${response.millas_ganadas} millas.`;
-          this.reserva = null; 
-        } else {
-          this.error = response.message;
-        }
-      } catch (err) {
-        this.error = "Error al procesar el check-in: " + err;
-      } finally {
-        this.loading = false;
-      }
-    },
         // LLAMADA AL BACKEND
         const response = await window.pywebview.api.realizarCheckIn(payload);
 

@@ -4,6 +4,8 @@ from datetime import datetime, date
 from clases.equipajes.Equipaje import Equipaje
 from clases.vuelos.Pasajero import Pasajero
 
+from clases.equipajes.Equipaje import Equipaje
+
 class EquipajeBodega(Equipaje):
     def calcularCosto(self, claseVuelo: str, pasajero : Pasajero) -> float:
         if claseVuelo == "PREF" and len(pasajero.__equipajes) == 0:
