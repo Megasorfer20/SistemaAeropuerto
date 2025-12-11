@@ -163,15 +163,17 @@
               </template>
 
               <!-- OPCIONES DE USUARIO -->
-              <template v-else>
+               <template v-else>
                 <button @click="verDetalles(vuelo.id)" class="btn btn-outline">Detalles</button>
+                
+                <!-- CÓDIGO CORREGIDO: Se eliminó :disabled="!usuarioActual" -->
                 <button
                   @click="reservarVuelo(vuelo.id)"
                   class="btn btn-primary"
-                  :disabled="!usuarioActual"
                 >
                   {{ usuarioActual ? 'Reservar' : 'Login para Reservar' }}
                 </button>
+              
               </template>
             </div>
           </div>
