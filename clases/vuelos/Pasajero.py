@@ -13,7 +13,7 @@ class Pasajero:
         self.__equipajes: List[Equipaje] = []
 
     def agregarEquipaje(self, eq: Equipaje) -> None:
-        pass
+        self.__equipajes.append(eq)
 
     def calcularTotalPasajero(self) -> float:
-        pass
+        return 0.0

@@ -122,6 +122,135 @@ class API:
         
         print(f"SISTEMA INICIADO: {len(self.__administradores)} Admins, {len(self.__clientes)} Clientes, {len(self.__vuelos)} Vuelos, {len(self.__reservas)} Reservas.")
 
+    def buscarReservaPorId(self, idReserva: str) -> Dict:
+        # Buscar en memoria
+        reserva: Reserva = next((r for r in self.__reservas if r.getId() == idReserva), None)
+        
+        if not reserva:
+            return {"success": False, "message": "Reserva no encontrada."}
+        
+        if reserva.getCheckInRealizado():
+             return {"success": False, "message": "El Check-In para esta reserva ya fue realizado."}
+
+        vuelo = reserva.getVuelo()
+        
+        # Construir respuesta para el Frontend
+        pasajeros_data = []
+        for pax in reserva.getPasajeros():
+            # Determinar tipo de asiento para reglas de equipaje
+            # (Asumimos que Pasajero tiene un objeto Asiento o una forma de saberlo)
+            # Aquí usamos un truco: miramos la clase del objeto asiento
+            es_pref = isinstance(pax._Pasajero__asiento, AsientoPreferencial) # Acceso a atributo privado name mangling si es necesario o getter
+            
+            pasajeros_data.append({
+                "nombre": pax._Pasajero__nombre, # Usar Getters en tu clase real
+                "num_doc": pax._Pasajero__numDoc,
+                "clase_asiento": "PREF" if es_pref else "ECO"
+            })
+
+        response = {
+            "codigo_reserva": reserva.getId(),
+            "vuelo": {
+                "codigo": vuelo.getCodigo(),
+                "origen": vuelo.getOrigen(),
+                "destino": vuelo.getDestino(),
+                "fecha": vuelo.getFechaHoraSalida().strftime("%Y-%m-%d"),
+                "hora": vuelo.getFechaHoraSalida().strftime("%H:%M")
+            },
+            "pasajeros": pasajeros_data
+        }
+        
+        return {"success": True, "data": response}
+
+    def realizarCheckIn(self, payload: Dict) -> Dict:
+        """
+        Requerimientos 6 y 7:
+        - Acumular millas (500 por reserva).
+        - Calcular costos de equipaje (Reglas de Cabina y Bodega).
+        - Finalizar Check-In.
+        """
+        try:
+            id_reserva = payload.get("idReserva")
+            pasajeros_config = payload.get("pasajeros") # Lista que viene del Vue
+
+            # 1. Buscar la reserva en memoria
+            reserva: Reserva = next((r for r in self.__reservas if r.getId() == id_reserva), None)
+            
+            if not reserva:
+                return {"success": False, "message": "Reserva no encontrada"}
+            
+            if reserva.getCheckInRealizado():
+                return {"success": False, "message": "El Check-In ya fue realizado anteriormente."}
+
+            total_costo_equipaje = 0.0
+
+            # 2. Procesar cada pasajero y sus maletas
+            for p_conf in pasajeros_config:
+                doc_pasajero = p_conf.get("num_doc")
+                
+                # Buscar el objeto Pasajero dentro de la Reserva
+                # (Accedemos a los atributos protegidos del objeto Pasajero)
+                pasajero_obj = next((p for p in reserva.getPasajeros() if p._Pasajero__numDoc == doc_pasajero), None)
+                
+                if pasajero_obj:
+                    # Determinar la clase del vuelo basada en el asiento del pasajero
+                    asiento = pasajero_obj._Pasajero__asiento
+                    es_preferencial = isinstance(asiento, AsientoPreferencial)
+                    clase_str = "PREF" if es_preferencial else "ECO"
+
+                    # --- A. EQUIPAJE CABINA (Req 7) ---
+                    if p_conf.get("maleta_cabina"):
+                        eq_cabina = EquipajeCabina(10, 0) # Peso estándar 10kg
+                        costo_cabina = eq_cabina.calcularCosto(clase_str)
+                        total_costo_equipaje += costo_cabina
+                        
+                        # Guardar en el objeto pasajero
+                        pasajero_obj.agregarEquipaje(eq_cabina)
+
+                    # --- B. EQUIPAJE BODEGA (Req 7) ---
+                    bodega_data = p_conf.get("maleta_bodega")
+                    peso = float(bodega_data.get("peso", 0))
+                    vol = float(bodega_data.get("volumen", 0))
+
+                    if peso > 0:
+                        eq_bodega = EquipajeBodega(peso, vol)
+                        costo_bodega = eq_bodega.calcularCosto(clase_str)
+                        
+                        # Regla: 1 maleta incluida para Preferencial
+                        # Verificamos si ya tiene equipaje de bodega agregado en este proceso
+                        # Para simplificar: Asumimos que el input trae 1 maleta de bodega por persona.
+                        # Si es PREF, esta primera maleta sale gratis.
+                        if es_preferencial:
+                            costo_bodega = 0.0 
+                            # Si permitieras agregar multiples maletas de bodega por persona, 
+                            # aquí deberías usar un contador. Pero el form actual permite 1.
+                        
+                        total_costo_equipaje += costo_bodega
+                        pasajero_obj.agregarEquipaje(eq_bodega)
+
+            # 3. Finalizar Check-In
+            reserva.setCheckInRealizado(True)
+
+            # 4. Acumular Millas (Req 6: 500 millas por reserva)
+            titular = reserva.getTitular()
+            millas_ganadas = 500
+            
+            if titular and isinstance(titular, Cliente):
+                titular.acumularMillas(millas_ganadas)
+            
+            # (El guardado en TXT se hace automático al cerrar la ventana gracias al init.py)
+
+            return {
+                "success": True, 
+                "millas_ganadas": millas_ganadas,
+                "costo_equipaje": total_costo_equipaje,
+                "mensaje": f"Check-In Exitoso. Costo extra equipaje: ${total_costo_equipaje:,.0f}"
+            }
+
+        except Exception as e:
+            print(f"Error en Check-In: {e}")
+            return {"success": False, "message": f"Error interno: {str(e)}"}
+                
     def guardar_datos_cierre(self) -> None:
         """
         Guarda todo en los TXT al cerrar el programa.
