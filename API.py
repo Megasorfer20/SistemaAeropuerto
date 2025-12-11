@@ -2,7 +2,7 @@ import webview
 import sys
 import os
 from typing import List, Dict, Any, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 # Imports de clases (ajusta según tu estructura de carpetas si es necesario)
 from clases.asientos.Asiento import Asiento
@@ -29,6 +29,43 @@ class API:
         
         self.__reservas: List[Reserva] = []
         self.__persistencia: Optional[IPersistencia] = GestorTxt()
+        
+    def _obtener_fecha_desde_str(self, dia_texto: str, hora_texto: str) -> datetime:
+        """
+        Intenta convertir el día y hora a datetime.
+        Soporta formato 'YYYY-MM-DD' y 'LUNES', 'MARTES', etc.
+        """
+        dia_texto = dia_texto.upper().strip()
+        
+        # 1. Intentar formato fecha completa (YYYY-MM-DD)
+        try:
+            return datetime.strptime(f"{dia_texto} {hora_texto}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            pass # No es fecha, probamos día de la semana
+
+        # 2. Intentar formato Día de Semana (LUNES, MARTES...)
+        dias_semana = {
+            "LUNES": 0, "MARTES": 1, "MIERCOLES": 2, "MIÉRCOLES": 2, 
+            "JUEVES": 3, "VIERNES": 4, "SABADO": 5, "SÁBADO": 5, "DOMINGO": 6
+        }
+        
+        if dia_texto in dias_semana:
+            today = datetime.now()
+            target_day_index = dias_semana[dia_texto]
+            current_day_index = today.weekday()
+            
+            # Calcular cuántos días faltan para el próximo día deseado
+            days_ahead = target_day_index - current_day_index
+            if days_ahead <= 0: # Si ya pasó esta semana, buscar la próxima
+                days_ahead += 7
+                
+            future_date = today + timedelta(days=days_ahead)
+            fecha_str = f"{future_date.strftime('%Y-%m-%d')} {hora_texto}"
+            return datetime.strptime(fecha_str, "%Y-%m-%d %H:%M")
+
+        # 3. Si falla todo, devolvemos la fecha de hoy para que no explote el sistema
+        print(f"Advertencia: No se pudo parsear la fecha '{dia_texto}', usando fecha actual.")
+        return datetime.now()
 
     def iniciar(self) -> None:
         # --- CARGAR ADMINISTRADORES ---
@@ -63,18 +100,18 @@ class API:
             self.__clientes.append(obj_cliente)
 
         # --- CARGAR VUELOS ---
-        # Keys del TXT: id, origen, destino, fechaDiaSalida, fechaHoraSalida, asientosEco, asientosPref
-        vuelos_data = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
+        vuelos_data = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosPref","asientosEco"])
         self.__vuelos = []
         
         for v in vuelos_data:
             try:
-                # Reconstruimos el datetime combinando día y hora para crear el objeto Vuelo
-                # Formato esperado en TXT: Dia="2023-11-20", Hora="15:30"
-                fecha_str = f"{v['fechaDiaSalida']} {v['fechaHoraSalida']}"
-                fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M")
+                # CORRECCIÓN DE FECHAS:
+                # Intentamos parsear la fecha. Si viene como "LUNES", calculamos una fecha futura real.
+                dia_str = v['fechaDiaSalida']
+                hora_str = v['fechaHoraSalida']
                 
-                # Precios fijos según enunciado
+                fecha_dt = self._obtener_fecha_desde_str(dia_str, hora_str)
+                
                 precio_eco = 235000.0
                 precio_pref = 850000.0
                 
@@ -146,23 +183,19 @@ class API:
         # Aquí también podrías guardar vuelos o reservas si los mantuviste en memoria
     
     def admin_agregar_vuelo(self, datos: Dict) -> Dict:
-        """
-        Agrega un vuelo a la lista en memoria self.__vuelos.
-        """
+        """Agrega un vuelo a la memoria."""
         if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
             return {"success": False, "message": "No autorizado"}
 
-        # Verificar si ya existe el código
         for v in self.__vuelos:
             if v.getCodigo() == datos["codigo"]:
-                return {"success": False, "message": "El código de vuelo ya existe."}
+                return {"success": False, "message": "El código ya existe."}
 
         try:
-            # Construir datetime
             fecha_str = f"{datos['dia']} {datos['hora']}"
             fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M")
             
-            nuevo_vuelo = Vuelo(
+            nuevo = Vuelo(
                 codigo=datos["codigo"],
                 origen=datos["origen"],
                 destino=datos["destino"],
@@ -172,58 +205,58 @@ class API:
                 precioBaseEco=235000.0,
                 precioBasePref=850000.0
             )
-            # Agregar a memoria
-            self.__vuelos.append(nuevo_vuelo)
-            return {"success": True, "message": "Vuelo agregado correctamente (Memoria)"}
-            
+            self.__vuelos.append(nuevo)
+            return {"success": True, "message": "Vuelo creado exitosamente"}
         except Exception as e:
-            return {"success": False, "message": f"Error en datos: {str(e)}"}
+            return {"success": False, "message": f"Error: {str(e)}"}
     
+    def admin_eliminar_vuelo(self, idVuelo: str) -> Dict:
+        """Elimina un vuelo de la memoria."""
+        if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
+            return {"success": False, "message": "No autorizado"}
+            
+        index_a_borrar = -1
+        for i, v in enumerate(self.__vuelos):
+            if v.getCodigo() == idVuelo:
+                index_a_borrar = i
+                break
+        
+        if index_a_borrar != -1:
+            self.__vuelos.pop(index_a_borrar)
+            return {"success": True, "message": "Vuelo eliminado"}
+        
+        return {"success": False, "message": "Vuelo no encontrado"}
+
     def admin_modificar_vuelo(self, idVuelo: str, datos: Dict) -> Dict:
-        """
-        Modifica un vuelo existente en la lista en memoria.
-        """
+        """Modifica un vuelo existente."""
         if not self.__usuarioSesion or self.__usuarioSesion.getTipo() != "Admin":
             return {"success": False, "message": "No autorizado"}
 
-        vuelo_encontrado: Optional[Vuelo] = None
-        for v in self.__vuelos:
-            if v.getCodigo() == idVuelo:
-                vuelo_encontrado = v
-                break
+        vuelo_encontrado = next((v for v in self.__vuelos if v.getCodigo() == idVuelo), None)
         
         if not vuelo_encontrado:
             return {"success": False, "message": "Vuelo no encontrado"}
 
-        # Nota: La clase Vuelo debería tener setters. Si no los tiene, 
-        # en Python podemos modificar los atributos privados con cuidado o (mejor) crear setters en Vuelo.py.
-        # Asumiendo acceso directo por simplicidad o que modificarás Vuelo.py para incluir setters:
         try:
-            # Como los atributos son __privados en Vuelo.py, idealmente usarías setters.
-            # Aquí accedo "a la fuerza" usando name mangling de Python _Clase__atributo para no pedirte cambiar Vuelo.py,
-            # pero lo correcto es agregar métodos setOrigen, setDestino en Vuelo.py.
-            
-            if "origen" in datos:
+            # Actualizamos atributos usando name mangling (acceso a privados)
+            # Idealmente Vuelo debería tener métodos setOrigen, etc.
+            if "origen" in datos and datos["origen"]:
                 vuelo_encontrado._Vuelo__origen = datos["origen"]
-            if "destino" in datos:
+            if "destino" in datos and datos["destino"]:
                 vuelo_encontrado._Vuelo__destino = datos["destino"]
             
-            # Si cambian fecha/hora, hay que reconstruir el datetime
-            if "dia" in datos or "hora" in datos:
-                dt_actual = vuelo_encontrado.getFechaHoraSalida()
-                dia = datos.get("dia", dt_actual.strftime("%Y-%m-%d"))
-                hora = datos.get("hora", dt_actual.strftime("%H:%M"))
-                nuevo_dt = datetime.strptime(f"{dia} {hora}", "%Y-%m-%d %H:%M")
+            if "dia" in datos and "hora" in datos and datos["dia"] and datos["hora"]:
+                nuevo_dt = datetime.strptime(f"{datos['dia']} {datos['hora']}", "%Y-%m-%d %H:%M")
                 vuelo_encontrado._Vuelo__fechaHoraSalida = nuevo_dt
 
-            if "sillas_eco" in datos:
+            if "sillas_eco" in datos and datos["sillas_eco"]:
                 vuelo_encontrado._Vuelo__asientosEco = int(datos["sillas_eco"])
-            if "sillas_pref" in datos:
+            if "sillas_pref" in datos and datos["sillas_pref"]:
                 vuelo_encontrado._Vuelo__asientosPref = int(datos["sillas_pref"])
 
-            return {"success": True, "message": "Vuelo modificado en memoria"}
+            return {"success": True, "message": "Vuelo modificado"}
         except Exception as e:
-            return {"success": False, "message": f"Error al modificar: {e}"}
+            return {"success": False, "message": f"Error: {e}"}
 
     def obtenerVuelosIniciales(self) -> List[Dict]:
         """
@@ -369,3 +402,42 @@ class API:
             "ventas_por_vuelo": ventas,
             "pasajeros": datos_pasajeros
         }
+    
+    # --- MÉTODOS DE DATOS (DASHBOARD) ---
+
+    def obtener_dashboard_stats(self) -> Dict:
+        """Retorna estadísticas para las cards del dashboard."""
+        tipo = self.__usuarioSesion.getTipo() if self.__usuarioSesion else "Cliente"
+        
+        stats = {
+            "vuelos_activos": len(self.__vuelos),
+            "destinos": len(set(v.getDestino() for v in self.__vuelos)),
+            "reservas_count": 0, # Placeholder hasta implementar Reservas reales
+            "millas": 0
+        }
+
+        if tipo == "Cliente" and isinstance(self.__usuarioSesion, Cliente):
+            stats["millas"] = self.__usuarioSesion.getMillas()
+            # Aquí filtrarías self.__reservas por el documento del cliente
+            
+        elif tipo == "Admin":
+            # Admin ve total de reservas
+            stats["reservas_count"] = len(self.__reservas) # Placeholder
+
+        return stats
+
+    def obtener_mis_reservas(self) -> List[Dict]:
+        """
+        Retorna la lista de reservas. 
+        Si es Admin, retorna todas. Si es Cliente, solo las suyas.
+        NOTA: Como la clase Reserva no está 100% implementada en el input,
+        esto retornará una lista vacía o mock por ahora para que el front no falle.
+        """
+        if not self.__usuarioSesion:
+            return []
+
+        reservas_fmt = []
+        # Lógica futura: iterar self.__reservas y convertir a dict
+        # for r in self.__reservas: ...
+        
+        return reservas_fmt
