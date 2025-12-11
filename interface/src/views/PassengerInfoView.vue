@@ -211,7 +211,7 @@
                 <div class="price-divider"></div>
                 <div class="price-detail price-total">
                   <span>Total</span>
-                  <span>${{ calcularTotal().toFixed(2) }}</span>
+                  <span>${{ calcularTotal().toLocaleString('es-CO', { maximumFractionDigits: 0 })}}</span>
                 </div>
               </div>
             </div>

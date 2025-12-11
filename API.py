@@ -100,7 +100,7 @@ class API:
             self.__clientes.append(obj_cliente)
 
         # --- CARGAR VUELOS ---
-        vuelos_data = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosPref","asientosEco"])
+        vuelos_data = self.__persistencia.cargarDatos("vuelos.txt", ["id","origen","destino", "fechaDiaSalida", "fechaHoraSalida","asientosEco","asientosPref"])
         self.__vuelos = []
         
         for v in vuelos_data:

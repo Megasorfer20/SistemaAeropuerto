@@ -350,6 +350,7 @@ export default {
     },
 
     calcularPrecioNormales() {
+      const precioUnitario = Number(this.vuelo.precio_eco || this.vuelo.precio || 0);
       return this.contarAsientosNormales() * this.PRECIO_ECO
     },
 
