@@ -13,8 +13,5 @@ export default {
 </script>
 
 <style scoped>
-#app {
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
+@import './assets/styles/main.css';
 </style>

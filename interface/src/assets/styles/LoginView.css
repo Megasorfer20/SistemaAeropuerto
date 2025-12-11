@@ -1,0 +1,80 @@
+.login-view {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 50%, #fff 100%);
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 450px;
+  padding: 40px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--primary-red);
+  margin-bottom: 16px;
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  color: var(--text-light);
+  font-size: 16px;
+}
+
+.login-form {
+  margin-bottom: 24px;
+}
+
+.btn-large {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 18px;
+  margin-top: 8px;
+}
+
+.demo-credentials {
+  background-color: var(--light-gray);
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-red);
+}
+
+.demo-title {
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 12px;
+}
+
+.demo-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demo-item {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.demo-item strong {
+  color: var(--text-dark);
+}
